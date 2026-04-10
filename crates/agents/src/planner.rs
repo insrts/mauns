@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use mauns_core::{
     error::{MaunsError, Result},
-    types::{Plan, RunContext, Step},
+    types::{Plan, ProgressReporter, RunContext, Step},
 };
 use mauns_llm::provider::LlmProvider;
 use tracing::info;
@@ -22,7 +22,12 @@ impl Planner {
         Self { provider }
     }
 
-    pub async fn plan(&self, task: &str, ctx: &RunContext) -> Result<Plan> {
+    pub async fn plan(
+        &self,
+        task: &str,
+        ctx: &RunContext,
+        reporter: Option<&dyn ProgressReporter>,
+    ) -> Result<Plan> {
         info!(agent = "planner", "producing structured plan");
 
         let policy_section = if ctx.agents_policy.raw.is_empty() {
@@ -97,10 +102,16 @@ impl Planner {
             "plan produced"
         );
 
-        Ok(Plan {
+        let plan = Plan {
             task: task.to_string(),
             steps: parsed,
-        })
+        };
+
+        if let Some(r) = reporter {
+            r.on_plan(&plan);
+        }
+
+        Ok(plan)
     }
 }
 
