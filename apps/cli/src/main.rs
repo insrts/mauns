@@ -4,11 +4,11 @@ use clap::Parser;
 use mauns_agents::{context_loader::load_run_context, git_orchestrator::GitConfig, Pipeline};
 use mauns_cli::{
     args::{Cli, Command},
-    output::print_report,
+    error_handler::handle_error,
+    output::{print_report, Ui, Verbosity},
 };
 use mauns_config::{load_config, schema::MaunsConfig};
 use mauns_llm::{build_provider, deterministic::DeterministicProvider, registry::ProviderKind};
-use tracing::error;
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -18,20 +18,30 @@ async fn main() {
     let config = match load_config() {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("[error] config: {e}");
+            eprintln!();
+            eprintln!("Configuration error: {}", e);
             std::process::exit(1);
         }
     };
 
-    let log_level = if cli.log_level != "info" {
-        cli.log_level.clone()
+    let log_level = if cli.debug {
+        "debug".to_string()
+    } else if cli.verbose {
+        "info".to_string()
     } else {
-        config.logging.level.clone()
+        "off".to_string()
     };
-    init_logging(&log_level);
+
+    init_logging(&log_level, cli.debug);
 
     if let Err(e) = run(cli, config).await {
-        error!("{e}");
+        if let Some(mauns_err) = e.downcast_ref::<mauns_core::error::MaunsError>() {
+            handle_error(mauns_err);
+        } else {
+            eprintln!();
+            eprintln!("Error: {}", e);
+            eprintln!();
+        }
         std::process::exit(1);
     }
 }
@@ -129,20 +139,40 @@ async fn run(cli: Cli, config: MaunsConfig) -> anyhow::Result<()> {
                 max_tokens,
             );
 
+            let verbosity = if cli.debug {
+                Verbosity::Debug
+            } else if cli.verbose {
+                Verbosity::Verbose
+            } else {
+                Verbosity::Normal
+            };
+            let ui = Ui::new(verbosity);
+
+            ui.print_task(&task);
+
             let pipeline = Pipeline::new(provider, git_cfg, vec![]);
-            let report = pipeline.run(&task, &ctx).await?;
+            let report = pipeline.run(&task, &ctx, Some(&ui)).await?;
             print_report(&report);
         }
     }
     Ok(())
 }
 
-fn init_logging(level: &str) {
+fn init_logging(level: &str, is_debug: bool) {
     let filter = EnvFilter::try_new(level).unwrap_or_else(|_| EnvFilter::new("info"));
-    tracing_subscriber::fmt()
+    let subscriber = tracing_subscriber::fmt()
         .with_env_filter(filter)
-        .with_target(true)
+        .with_target(is_debug)
         .with_thread_ids(false)
-        .with_ansi(false)
-        .init();
+        .with_ansi(true);
+
+    if !is_debug {
+        subscriber
+            .with_level(false)
+            .with_target(false)
+            .without_time()
+            .init();
+    } else {
+        subscriber.init();
+    }
 }

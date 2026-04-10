@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use mauns_core::{
     error::{MaunsError, Result},
-    types::{RunContext, TaskReport},
+    types::{ProgressReporter, RunContext, TaskReport},
 };
 use mauns_filesystem::{Filesystem, PathGuard};
 use mauns_llm::provider::LlmProvider;
@@ -40,7 +40,12 @@ impl Pipeline {
         }
     }
 
-    pub async fn run(&self, task: &str, ctx: &RunContext) -> Result<TaskReport> {
+    pub async fn run(
+        &self,
+        task: &str,
+        ctx: &RunContext,
+        reporter: Option<&dyn ProgressReporter>,
+    ) -> Result<TaskReport> {
         info!(
             pipeline      = "start",
             task          = %task,
@@ -63,12 +68,19 @@ impl Pipeline {
 
         let fs = Filesystem::new(ctx.dry_run)?;
 
-        let plan = self.planner.plan(task, ctx).await?;
+        let plan = self.planner.plan(task, ctx, reporter).await?;
         info!(pipeline = "planner", steps = plan.steps.len());
 
         let (execution, skill_log, interrupted) = self
             .executor
-            .execute(&plan, ctx, &skill_set, ctx.max_retries, ctx.context_window)
+            .execute(
+                &plan,
+                ctx,
+                &skill_set,
+                ctx.max_retries,
+                ctx.context_window,
+                reporter,
+            )
             .await?;
 
         info!(
@@ -109,7 +121,7 @@ impl Pipeline {
             run_git_workflow(task, &execution.summary, &change_log, ctx, &self.git_config).await?
         };
 
-        Ok(TaskReport {
+        let report = TaskReport {
             task: task.to_string(),
             plan,
             execution,
@@ -118,6 +130,12 @@ impl Pipeline {
             git_outcome,
             skill_log,
             interrupted,
-        })
+        };
+
+        if let Some(r) = reporter {
+            r.on_result(&report.execution.summary);
+        }
+
+        Ok(report)
     }
 }

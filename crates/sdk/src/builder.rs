@@ -84,7 +84,7 @@ impl Mauns {
         );
 
         Pipeline::new(provider, git_cfg, self.extra_skills.clone())
-            .run(task, &ctx)
+            .run(task, &ctx, None)
             .await
     }
 

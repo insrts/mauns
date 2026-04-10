@@ -16,6 +16,14 @@ pub struct Cli {
 
     #[arg(long, global = true, default_value = "info", env = "MAUNS_LOG")]
     pub log_level: String,
+
+    /// Show execution details (step-by-step progress).
+    #[arg(long, short = 'v', global = true)]
+    pub verbose: bool,
+
+    /// Show full debug logs (tracing).
+    #[arg(long, global = true)]
+    pub debug: bool,
 }
 
 #[derive(Debug, Subcommand)]

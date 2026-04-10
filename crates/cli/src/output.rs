@@ -1,129 +1,130 @@
-use mauns_core::types::{FileOperation, TaskReport};
+use mauns_core::types::{FileOperation, Plan, ProgressReporter, TaskReport};
+
+#[derive(Debug, Clone, Copy)]
+pub enum Verbosity {
+    Normal,
+    Verbose,
+    Debug,
+}
+
+pub struct Ui {
+    verbosity: Verbosity,
+}
+
+impl ProgressReporter for Ui {
+    fn on_plan(&self, plan: &Plan) {
+        self.print_plan(plan);
+    }
+
+    fn on_execution_start(&self) {
+        self.print_execution_start();
+    }
+
+    fn on_step_complete(&self, id: usize, task: &str) {
+        self.print_step_completion(id, task);
+    }
+
+    fn on_step_failure(&self, id: usize, task: &str, error: &str) {
+        self.print_step_failure(id, task, error);
+    }
+
+    fn on_result(&self, summary: &str) {
+        self.print_result(summary);
+    }
+}
+
+impl Ui {
+    pub fn new(verbosity: Verbosity) -> Self {
+        Self { verbosity }
+    }
+
+    pub fn print_task(&self, task: &str) {
+        println!();
+        println!("Running task: {}", task);
+        println!();
+    }
+
+    pub fn print_plan(&self, plan: &Plan) {
+        println!("Plan:");
+        for step in &plan.steps {
+            println!("{}. {}", step.id, step.task);
+        }
+        println!();
+    }
+
+    pub fn print_execution_start(&self) {
+        println!("Execution:");
+    }
+
+    pub fn print_step_completion(&self, id: usize, _task: &str) {
+        println!("✓ Step {} completed", id);
+    }
+
+    pub fn print_step_failure(&self, id: usize, _task: &str, error: &str) {
+        println!("✗ Step {} failed: {}", id, error);
+    }
+
+    pub fn print_result(&self, summary: &str) {
+        println!();
+        println!("Result:");
+        println!("{}", summary.trim());
+        println!();
+    }
+
+    pub fn is_verbose(&self) -> bool {
+        matches!(self.verbosity, Verbosity::Verbose | Verbosity::Debug)
+    }
+
+    pub fn is_debug(&self) -> bool {
+        matches!(self.verbosity, Verbosity::Debug)
+    }
+}
 
 pub fn print_report(report: &TaskReport) {
-    println!();
-    println!("=== MAUNS TASK REPORT ===");
-    println!();
-
     if report.interrupted {
-        println!("  [INTERRUPTED — partial results]");
+        println!();
+        println!("Interrupted — partial results only.");
         println!();
     }
-
-    println!("Task: {}", report.task);
-    println!();
-
-    println!("--- PLAN ---");
-    for step in &report.plan.steps {
-        let deps = if step.depends_on.is_empty() {
-            String::new()
-        } else {
-            format!(
-                "  (depends on: {})",
-                step.depends_on
-                    .iter()
-                    .map(|d| d.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
-        };
-        println!("  [{}] {}{deps}", step.id, step.task);
-    }
-    println!();
-
-    println!("--- EXECUTION ---");
-    println!("  iterations:   {}", report.execution.iterations);
-    println!("  retries used: {}", report.execution.total_retries);
-    println!(
-        "  tokens:       {} (prompt: {}, completion: {})",
-        report.execution.token_usage.total(),
-        report.execution.token_usage.prompt_tokens,
-        report.execution.token_usage.completion_tokens,
-    );
-    println!();
-
-    for result in &report.execution.results {
-        let retry_note = if result.retries_used > 0 {
-            format!(
-                "  [{} retr{}]",
-                result.retries_used,
-                if result.retries_used == 1 { "y" } else { "ies" }
-            )
-        } else {
-            String::new()
-        };
-        println!(
-            "  [step {}]{retry_note} {}",
-            result.step.id, result.step.task
-        );
-        println!("  output: {}", result.output.trim());
-        println!();
-    }
-    println!("  summary: {}", report.execution.summary.trim());
-    println!();
-
-    println!("--- VERIFICATION ---");
-    let verdict = if report.verification.passed {
-        "PASSED"
-    } else {
-        "FAILED"
-    };
-    println!("  verdict:  {verdict}");
-    println!("  feedback: {}", report.verification.feedback.trim());
-    if report.verification.retry_suggested && !report.verification.passed {
-        println!("  note:     retry may improve results");
-    }
-    println!();
 
     if !report.change_log.is_empty() {
-        println!("--- FILESYSTEM CHANGES ---");
+        println!("Changes:");
         for change in &report.change_log {
-            let status = if change.applied { "applied" } else { "dry-run" };
+            let status = if change.applied { "✓" } else { "→" };
             let op = match change.operation {
-                FileOperation::Create => "create",
-                FileOperation::Edit => "edit",
-                FileOperation::Delete => "delete",
+                FileOperation::Create => "created",
+                FileOperation::Edit => "modified",
+                FileOperation::Delete => "deleted",
             };
-            println!("  [{}] {} {}", status, op, change.path);
-            if !change.diff.is_empty() {
-                for line in change.diff.lines() {
-                    println!("    {line}");
-                }
-                println!();
-            }
-        }
-    }
-
-    if !report.skill_log.is_empty() {
-        println!("--- SKILL USAGE ---");
-        for entry in &report.skill_log {
-            let status = if entry.success { "ok" } else { "err" };
-            let ts = entry.timestamp.format("%H:%M:%S");
-            if entry.message.is_empty() {
-                println!("  [{status}] {ts}  {}", entry.skill_name);
-            } else {
-                println!(
-                    "  [{status}] {ts}  {}  -- {}",
-                    entry.skill_name,
-                    entry.message.trim()
-                );
-            }
+            println!("  {} {} {}", status, op, change.path);
         }
         println!();
     }
 
     if let Some(ref git) = report.git_outcome {
-        println!("--- GIT OUTCOME ---");
+        println!("Git:");
         println!("  branch:  {}", git.branch);
         println!("  commit:  {}", git.commit_id);
         if let Some(ref url) = git.pr_url {
             println!("  pr:      {url}");
-        } else {
-            println!("  pr:      (not created)");
         }
         println!();
     }
 
-    println!("=========================");
+    println!("Summary:");
+    println!(
+        "  tokens:  {} ({} prompt, {} completion)",
+        report.execution.token_usage.total(),
+        report.execution.token_usage.prompt_tokens,
+        report.execution.token_usage.completion_tokens,
+    );
+    println!(
+        "  status:  {}",
+        if report.verification.passed {
+            "Success"
+        } else {
+            "Incomplete"
+        }
+    );
     println!();
 }

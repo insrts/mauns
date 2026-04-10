@@ -12,8 +12,8 @@ use std::sync::Arc;
 use mauns_core::{
     error::{MaunsError, Result},
     types::{
-        AgentAction, ExecutionOutput, Plan, RunContext, SkillInput, SkillOutput, SkillUsage,
-        StepResult, TokenUsage,
+        AgentAction, ExecutionOutput, Plan, ProgressReporter, RunContext, SkillInput, SkillOutput,
+        SkillUsage, StepResult, TokenUsage,
     },
 };
 use mauns_llm::provider::{LlmProvider, SamplingOptions};
@@ -269,6 +269,7 @@ impl Executor {
         skills: &SkillSet,
         max_retries: usize,
         context_win: usize,
+        reporter: Option<&dyn ProgressReporter>,
     ) -> Result<(ExecutionOutput, Vec<SkillUsage>, bool)> {
         info!(
             agent = "executor",
@@ -308,6 +309,10 @@ impl Executor {
 
         // Respect Plan::execution_order() for dependency-aware execution.
         let ordered_steps = plan.execution_order();
+
+        if let Some(r) = reporter {
+            r.on_execution_start();
+        }
 
         'steps: for step in ordered_steps {
             // Check interrupt before starting each step.
@@ -492,9 +497,15 @@ impl Executor {
                 }
 
                 if step_done {
+                    if let Some(r) = reporter {
+                        r.on_step_complete(step.id, &step.task);
+                    }
                     break 'iter;
                 }
                 if ctx.vibe_mode || !had_failure {
+                    if let Some(r) = reporter {
+                        r.on_step_complete(step.id, &step.task);
+                    }
                     break 'iter;
                 }
             }
