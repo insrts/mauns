@@ -61,7 +61,7 @@ impl Pipeline {
         }
         info!(pipeline = "skills", count = skill_set.len());
 
-        let mut fs = Filesystem::new(ctx.dry_run)?;
+        let fs = Filesystem::new(ctx.dry_run)?;
 
         let plan = self.planner.plan(task, ctx).await?;
         info!(pipeline = "planner", steps = plan.steps.len());

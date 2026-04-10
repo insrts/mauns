@@ -103,7 +103,9 @@ mod tests {
     #[test]
     fn dispatch_unknown_returns_not_found() {
         let s = SkillSet::new();
-        let e = s.dispatch("missing").unwrap_err();
+        let res = s.dispatch("missing");
+        assert!(res.is_err());
+        let e = res.err().unwrap();
         assert!(matches!(e, MaunsError::SkillNotFound(_)));
     }
 

@@ -11,7 +11,7 @@
 //! `.maunsignore` overrides everything — it is checked before PathGuard's
 //! own hidden-file and blocklist rules inside every I/O operation.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use tracing::debug;
 

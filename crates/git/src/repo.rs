@@ -97,7 +97,7 @@ impl GitRepo {
     }
 
     /// Expose a reference to the inner `git2::Repository` for staging/committing.
-    pub(crate) fn inner(&self) -> &Repository {
+    pub fn inner(&self) -> &Repository {
         &self.inner
     }
 

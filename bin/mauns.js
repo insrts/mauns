@@ -4,6 +4,7 @@
 const { execFileSync } = require("child_process");
 const path = require("path");
 const os = require("os");
+const fs = require("fs");
 
 const platform = os.platform();
 const arch = os.arch();
@@ -25,6 +26,13 @@ if (!binaryName) {
 }
 
 const binaryPath = path.join(__dirname, "..", "bin", binaryName);
+
+if (!fs.existsSync(binaryPath)) {
+  console.error(`Mauns binary not found at ${binaryPath}`);
+  console.error("Please ensure the package was installed correctly or build from source:");
+  console.error("git clone https://github.com/mauns/mauns && cd mauns && cargo build --release");
+  process.exit(1);
+}
 
 try {
   execFileSync(binaryPath, process.argv.slice(2), { stdio: "inherit" });

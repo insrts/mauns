@@ -158,6 +158,6 @@ fn resolve_origin_url(repo: &GitRepo) -> Result<String> {
 
     remote
         .url()
-        .map(|s| s.to_string())
+        .map(|s: &str| s.to_string())
         .ok_or_else(|| MaunsError::Git("origin remote has no URL".to_string()))
 }

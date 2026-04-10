@@ -62,6 +62,7 @@ docker run \
   --env "CLAUDE_API_KEY=${CLAUDE_API_KEY:-}" \
   --env "OPENAI_API_KEY=${OPENAI_API_KEY:-}" \
   --env "GITHUB_TOKEN=${GITHUB_TOKEN:-}" \
+  --env "MAUNS_PROVIDER=${MAUNS_PROVIDER:-anthropic}" \
   --env "MAUNS_LOG=${MAUNS_LOG:-info}" \
   "${IMAGE_NAME}:${IMAGE_TAG}" \
   run "${TASK}" ${MAUNS_FLAGS:-}
