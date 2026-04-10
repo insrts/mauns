@@ -22,7 +22,11 @@ impl Verifier {
     }
 
     pub async fn verify(&self, output: &ExecutionOutput) -> Result<VerificationReport> {
-        info!(agent = "verifier", steps = output.results.len(), "verifying execution output");
+        info!(
+            agent = "verifier",
+            steps = output.results.len(),
+            "verifying execution output"
+        );
 
         let steps_text: String = output
             .results
@@ -54,26 +58,28 @@ impl Verifier {
              Original task: {task}\n\n\
              Execution summary: {summary}\n\n\
              Step outputs:\n{steps_text}",
-            task    = output.task,
+            task = output.task,
             summary = output.summary,
         );
 
-        let raw = self.provider.send_prompt(&prompt).await.map_err(|e| {
-            MaunsError::Agent {
-                agent:   "verifier".to_string(),
+        let raw = self
+            .provider
+            .send_prompt(&prompt)
+            .await
+            .map_err(|e| MaunsError::Agent {
+                agent: "verifier".to_string(),
                 message: format!("LLM call failed: {e}"),
-            }
-        })?;
+            })?;
 
         let parsed: VerificationJson =
             serde_json::from_str(raw.trim()).map_err(|e| MaunsError::Agent {
-                agent:   "verifier".to_string(),
+                agent: "verifier".to_string(),
                 message: format!("JSON parse failed: {e}\nraw: {raw}"),
             })?;
 
         let report = VerificationReport {
-            passed:          parsed.passed,
-            feedback:        parsed.feedback,
+            passed: parsed.passed,
+            feedback: parsed.feedback,
             retry_suggested: parsed.retry_suggested,
         };
 
@@ -94,8 +100,8 @@ impl Verifier {
 
 #[derive(serde::Deserialize)]
 struct VerificationJson {
-    passed:          bool,
-    feedback:        String,
+    passed: bool,
+    feedback: String,
     #[serde(default)]
     retry_suggested: bool,
 }
@@ -110,12 +116,12 @@ mod tests {
 
     fn make_output(task: &str, summary: &str) -> ExecutionOutput {
         ExecutionOutput {
-            task:          task.to_string(),
-            results:       vec![],
-            summary:       summary.to_string(),
-            iterations:    1,
+            task: task.to_string(),
+            results: vec![],
+            summary: summary.to_string(),
+            iterations: 1,
             total_retries: 0,
-            token_usage:   mauns_core::types::TokenUsage::default(),
+            token_usage: mauns_core::types::TokenUsage::default(),
         }
     }
 

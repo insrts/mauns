@@ -76,7 +76,13 @@ fn is_explicitly_allowed(name: &str) -> bool {
 pub fn branch_name(task: &str, ts: chrono::DateTime<chrono::Utc>) -> String {
     let slug: String = task
         .chars()
-        .map(|c| if c.is_alphanumeric() { c.to_ascii_lowercase() } else { '-' })
+        .map(|c| {
+            if c.is_alphanumeric() {
+                c.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
         .take(40)
         .collect::<String>()
         .trim_matches('-')
@@ -88,7 +94,9 @@ pub fn branch_name(task: &str, ts: chrono::DateTime<chrono::Utc>) -> String {
         .chars()
         .filter(|&c| {
             if c == '-' {
-                if prev_hyphen { return false; }
+                if prev_hyphen {
+                    return false;
+                }
                 prev_hyphen = true;
             } else {
                 prev_hyphen = false;
@@ -130,7 +138,9 @@ mod tests {
     #[test]
     fn branch_name_format() {
         use chrono::TimeZone;
-        let ts = chrono::Utc.with_ymd_and_hms(2024, 1, 15, 10, 30, 0).unwrap();
+        let ts = chrono::Utc
+            .with_ymd_and_hms(2024, 1, 15, 10, 30, 0)
+            .unwrap();
         let name = branch_name("Fix the login bug", ts);
         assert!(name.starts_with("mauns/"));
         assert!(name.contains("20240115T103000Z"));

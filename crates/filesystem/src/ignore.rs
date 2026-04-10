@@ -23,8 +23,8 @@ pub struct IgnoreRules {
 
 #[derive(Debug, Clone)]
 struct IgnoreRule {
-    pattern:  String,
-    negated:  bool,
+    pattern: String,
+    negated: bool,
     dir_only: bool,
 }
 
@@ -67,7 +67,11 @@ impl IgnoreRules {
                 if pattern.is_empty() {
                     return None;
                 }
-                Some(IgnoreRule { pattern, negated, dir_only })
+                Some(IgnoreRule {
+                    pattern,
+                    negated,
+                    dir_only,
+                })
             })
             .collect();
         Self { rules }
@@ -145,7 +149,8 @@ fn glob_match_bytes(pat: &[u8], text: &[u8]) -> bool {
                 let rest_pat = &pat[2..];
                 // `**` matches zero or more path segments
                 for i in 0..=text.len() {
-                    if glob_match_bytes(rest_pat.strip_prefix(b"/").unwrap_or(rest_pat), &text[i..]) {
+                    if glob_match_bytes(rest_pat.strip_prefix(b"/").unwrap_or(rest_pat), &text[i..])
+                    {
                         return true;
                     }
                     if i < text.len() && text[i] == b'/' {
@@ -224,7 +229,7 @@ mod tests {
     fn dir_only_pattern() {
         let r = rules("build/\n");
         assert!(r.is_ignored("build", true));
-        assert!(!r.is_ignored("build", false));  // not a dir
+        assert!(!r.is_ignored("build", false)); // not a dir
     }
 
     #[test]

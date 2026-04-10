@@ -12,29 +12,29 @@ use std::sync::Arc;
 use mauns_core::{
     error::{MaunsError, Result},
     types::{
-        AgentAction, ExecutionOutput, Plan, RunContext, SkillInput, SkillOutput,
-        SkillUsage, StepResult, TokenUsage,
+        AgentAction, ExecutionOutput, Plan, RunContext, SkillInput, SkillOutput, SkillUsage,
+        StepResult, TokenUsage,
     },
 };
 use mauns_llm::provider::{LlmProvider, SamplingOptions};
 use mauns_skills::skillset::SkillSet;
 use tracing::{info, warn};
 
-pub const MAX_SKILL_CALLS:  usize = 50;
-const MAX_PARSE_RETRIES:    usize = 3;
+pub const MAX_SKILL_CALLS: usize = 50;
+const MAX_PARSE_RETRIES: usize = 3;
 
 // ---------------------------------------------------------------------------
 // Structured execution context
 // ---------------------------------------------------------------------------
 
 struct ExecContext {
-    summary:         String,
-    recent:          Vec<String>,
-    last_error:      Option<String>,
+    summary: String,
+    recent: Vec<String>,
+    last_error: Option<String>,
     last_reflection: Option<String>,
     /// Named key outputs stored for cross-step reuse.
-    key_outputs:     Vec<(String, String)>,
-    window:          usize,
+    key_outputs: Vec<(String, String)>,
+    window: usize,
     /// Tracks the last N failure messages to detect loops.
     failure_history: Vec<String>,
 }
@@ -42,11 +42,11 @@ struct ExecContext {
 impl ExecContext {
     fn new(window: usize) -> Self {
         Self {
-            summary:         String::new(),
-            recent:          Vec::new(),
-            last_error:      None,
+            summary: String::new(),
+            recent: Vec::new(),
+            last_error: None,
             last_reflection: None,
-            key_outputs:     Vec::new(),
+            key_outputs: Vec::new(),
             window,
             failure_history: Vec::new(),
         }
@@ -103,11 +103,7 @@ impl ExecContext {
             return false;
         }
         let last = self.failure_history.last().unwrap();
-        self.failure_history
-            .iter()
-            .filter(|m| *m == last)
-            .count()
-            >= 3
+        self.failure_history.iter().filter(|m| *m == last).count() >= 3
     }
 
     fn render(&self) -> String {
@@ -153,20 +149,20 @@ impl ExecContext {
 
 #[derive(Default)]
 struct GitContext {
-    initialized:    bool,
+    initialized: bool,
     current_branch: String,
-    has_staged:     bool,
-    has_unstaged:   bool,
+    has_staged: bool,
+    has_unstaged: bool,
 }
 
 impl GitContext {
     fn read() -> Self {
         let cwd = match std::env::current_dir() {
-            Ok(d)  => d,
+            Ok(d) => d,
             Err(_) => return Self::default(),
         };
         let repo = match git2::Repository::open(&cwd) {
-            Ok(r)  => r,
+            Ok(r) => r,
             Err(_) => return Self::default(),
         };
 
@@ -188,16 +184,19 @@ impl GitContext {
                     staged = true;
                 }
                 if s.intersects(
-                    git2::Status::WT_MODIFIED
-                        | git2::Status::WT_NEW
-                        | git2::Status::WT_DELETED,
+                    git2::Status::WT_MODIFIED | git2::Status::WT_NEW | git2::Status::WT_DELETED,
                 ) {
                     unstaged = true;
                 }
             }
         }
 
-        Self { initialized: true, current_branch: branch, has_staged: staged, has_unstaged: unstaged }
+        Self {
+            initialized: true,
+            current_branch: branch,
+            has_staged: staged,
+            has_unstaged: unstaged,
+        }
     }
 
     fn render(&self) -> String {
@@ -210,7 +209,7 @@ impl GitContext {
              \n  staged: {}\
              \n  unstaged: {}",
             self.current_branch,
-            if self.has_staged   { "yes" } else { "no" },
+            if self.has_staged { "yes" } else { "no" },
             if self.has_unstaged { "yes" } else { "no" },
         )
     }
@@ -265,35 +264,35 @@ impl Executor {
 
     pub async fn execute(
         &self,
-        plan:        &Plan,
-        ctx:         &RunContext,
-        skills:      &SkillSet,
+        plan: &Plan,
+        ctx: &RunContext,
+        skills: &SkillSet,
         max_retries: usize,
         context_win: usize,
     ) -> Result<(ExecutionOutput, Vec<SkillUsage>, bool)> {
         info!(
-            agent         = "executor",
-            steps         = plan.steps.len(),
+            agent = "executor",
+            steps = plan.steps.len(),
             deterministic = ctx.deterministic,
             "beginning iterative execution"
         );
 
-        let opts         = self.sampling(ctx);
-        let catalogue    = build_catalogue(skills);
-        let constraints  = build_constraint_note(ctx);
+        let opts = self.sampling(ctx);
+        let catalogue = build_catalogue(skills);
+        let constraints = build_constraint_note(ctx);
         let dry_run_note = if ctx.dry_run { DRY_RUN_NOTE } else { "" };
         let project_note = build_project_note(ctx);
-        let git_ctx      = GitContext::read();
-        let git_note     = git_ctx.render();
+        let git_ctx = GitContext::read();
+        let git_note = git_ctx.render();
 
-        let mut results:       Vec<StepResult> = Vec::new();
-        let mut skill_log:     Vec<SkillUsage> = Vec::new();
-        let mut total_calls    = 0usize;
-        let mut iteration      = 0usize;
-        let mut total_retries  = 0usize;
-        let mut token_usage    = TokenUsage::default();
-        let mut exec_ctx       = ExecContext::new(context_win);
-        let mut interrupted    = false;
+        let mut results: Vec<StepResult> = Vec::new();
+        let mut skill_log: Vec<SkillUsage> = Vec::new();
+        let mut total_calls = 0usize;
+        let mut iteration = 0usize;
+        let mut total_retries = 0usize;
+        let mut token_usage = TokenUsage::default();
+        let mut exec_ctx = ExecContext::new(context_win);
+        let mut interrupted = false;
 
         // Interrupt watcher — resolved once by Ctrl+C.
         let interrupt = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
@@ -301,7 +300,10 @@ impl Executor {
         tokio::spawn(async move {
             wait_for_interrupt().await;
             interrupt_clone.store(true, std::sync::atomic::Ordering::SeqCst);
-            warn!(executor = "interrupt", "Ctrl+C received; stopping after current step");
+            warn!(
+                executor = "interrupt",
+                "Ctrl+C received; stopping after current step"
+            );
         });
 
         // Respect Plan::execution_order() for dependency-aware execution.
@@ -310,15 +312,19 @@ impl Executor {
         'steps: for step in ordered_steps {
             // Check interrupt before starting each step.
             if interrupt.load(std::sync::atomic::Ordering::SeqCst) {
-                warn!(executor = "interrupt", step = step.id, "stopping before step");
+                warn!(
+                    executor = "interrupt",
+                    step = step.id,
+                    "stopping before step"
+                );
                 interrupted = true;
                 break 'steps;
             }
 
             info!(agent = "executor", step = step.id, task = %step.task, "executing step");
 
-            let mut step_retries     = 0usize;
-            let mut step_iter_count  = 0usize;
+            let mut step_retries = 0usize;
+            let mut step_iter_count = 0usize;
             let mut step_output_acc: Vec<String> = Vec::new();
 
             'iter: loop {
@@ -333,9 +339,9 @@ impl Executor {
                 // Token limit check.
                 if ctx.max_tokens > 0 && token_usage.total() >= ctx.max_tokens {
                     warn!(
-                        agent  = "executor",
-                        used   = token_usage.total(),
-                        limit  = ctx.max_tokens,
+                        agent = "executor",
+                        used = token_usage.total(),
+                        limit = ctx.max_tokens,
                         "token limit reached"
                     );
                     return Err(MaunsError::LimitExceeded(format!(
@@ -362,10 +368,7 @@ impl Executor {
                 );
                 token_usage.add_prompt(&prompt);
 
-                let actions = match self
-                    .call_and_parse(&prompt, &opts, MAX_PARSE_RETRIES)
-                    .await
-                {
+                let actions = match self.call_and_parse(&prompt, &opts, MAX_PARSE_RETRIES).await {
                     Ok(a) => {
                         exec_ctx.clear_error();
                         a
@@ -375,7 +378,7 @@ impl Executor {
                         total_retries += 1;
                         if step_retries > max_retries {
                             return Err(MaunsError::Agent {
-                                agent:   "executor".to_string(),
+                                agent: "executor".to_string(),
                                 message: format!(
                                     "step {} failed after {max_retries} retries: {e}",
                                     step.id
@@ -390,9 +393,9 @@ impl Executor {
                         };
                         exec_ctx.set_error(format!("{msg}{loop_strategy}"));
                         warn!(
-                            agent  = "executor",
-                            step   = step.id,
-                            retry  = step_retries,
+                            agent = "executor",
+                            step = step.id,
+                            retry = step_retries,
                             looping = exec_ctx.is_looping(),
                             "step retry"
                         );
@@ -400,7 +403,7 @@ impl Executor {
                     }
                 };
 
-                let mut step_done   = false;
+                let mut step_done = false;
                 let mut had_failure = false;
                 let mut iter_parts: Vec<String> = Vec::new();
 
@@ -423,7 +426,10 @@ impl Executor {
                             iter_parts.push(format!("[note] {message}"));
                         }
 
-                        AgentAction::Skill { ref name, ref input } => {
+                        AgentAction::Skill {
+                            ref name,
+                            ref input,
+                        } => {
                             total_calls += 1;
                             if total_calls > MAX_SKILL_CALLS {
                                 return Err(MaunsError::LimitExceeded(format!(
@@ -433,17 +439,22 @@ impl Executor {
 
                             let out = match skills.dispatch(name) {
                                 Ok(skill) => {
-                                    skill.execute(SkillInput { params: input.clone() }).await
+                                    skill
+                                        .execute(SkillInput {
+                                            params: input.clone(),
+                                        })
+                                        .await
                                 }
                                 Err(e) => Err(e),
                             };
 
-                            let usage    = record_usage(name, &out);
+                            let usage = record_usage(name, &out);
                             let feedback = format_feedback(name, &out);
 
                             if !usage.success {
                                 had_failure = true;
-                                exec_ctx.set_error(format!("skill {name} failed: {}", usage.message));
+                                exec_ctx
+                                    .set_error(format!("skill {name} failed: {}", usage.message));
                             } else {
                                 // Store successful skill outputs as key outputs.
                                 exec_ctx.store_key_output(
@@ -464,7 +475,11 @@ impl Executor {
 
                 let iter_output = iter_parts.join("\n");
                 step_output_acc.push(iter_output.clone());
-                exec_ctx.push(format!("step:{} iter:{step_iter_count} => {}", step.id, truncate(&iter_output, 300)));
+                exec_ctx.push(format!(
+                    "step:{} iter:{step_iter_count} => {}",
+                    step.id,
+                    truncate(&iter_output, 300)
+                ));
 
                 // Reflection step (not in vibe mode).
                 if !step_done && !ctx.vibe_mode {
@@ -486,8 +501,8 @@ impl Executor {
 
             let final_output = step_output_acc.join("\n---\n");
             results.push(StepResult {
-                step:         step.clone(),
-                output:       final_output,
+                step: step.clone(),
+                output: final_output,
                 retries_used: step_retries,
             });
         }
@@ -497,10 +512,10 @@ impl Executor {
         token_usage.add_completion(&summary);
 
         info!(
-            agent   = "executor",
-            iters   = iteration,
+            agent = "executor",
+            iters = iteration,
             retries = total_retries,
-            tokens  = token_usage.total(),
+            tokens = token_usage.total(),
             interrupted,
             "execution complete"
         );
@@ -510,7 +525,7 @@ impl Executor {
                 task: plan.task.clone(),
                 results,
                 summary,
-                iterations:    iteration,
+                iterations: iteration,
                 total_retries,
                 token_usage,
             },
@@ -525,11 +540,11 @@ impl Executor {
 
     async fn reflect(
         &self,
-        task:        &str,
-        step_id:     usize,
+        task: &str,
+        step_id: usize,
         step_output: &str,
         had_failure: bool,
-        opts:        &SamplingOptions,
+        opts: &SamplingOptions,
     ) -> Result<String> {
         let fail_note = if had_failure {
             " (one or more skill calls failed)"
@@ -548,7 +563,7 @@ impl Executor {
             .send_prompt_with_options(&prompt, opts)
             .await
             .map_err(|e| MaunsError::Agent {
-                agent:   "executor".to_string(),
+                agent: "executor".to_string(),
                 message: format!("reflection failed: {e}"),
             })
     }
@@ -559,17 +574,18 @@ impl Executor {
 
     async fn call_and_parse(
         &self,
-        prompt:  &str,
-        opts:    &SamplingOptions,
+        prompt: &str,
+        opts: &SamplingOptions,
         retries: usize,
     ) -> Result<Vec<AgentAction>> {
         let mut last_err = String::new();
         for attempt in 0..=retries {
-            let raw = self.provider
+            let raw = self
+                .provider
                 .send_prompt_with_options(prompt, opts)
                 .await
                 .map_err(|e| MaunsError::Agent {
-                    agent:   "executor".to_string(),
+                    agent: "executor".to_string(),
                     message: format!("LLM call failed: {e}"),
                 })?;
 
@@ -586,23 +602,20 @@ impl Executor {
             }
         }
         Err(MaunsError::Agent {
-            agent:   "executor".to_string(),
+            agent: "executor".to_string(),
             message: format!("parse failed after {retries} retries: {last_err}"),
         })
     }
 
     async fn summarize(
         &self,
-        plan:    &Plan,
+        plan: &Plan,
         results: &[StepResult],
-        opts:    &SamplingOptions,
+        opts: &SamplingOptions,
     ) -> Result<String> {
         let steps_text: String = results
             .iter()
-            .map(|r| format!(
-                "Step {}: {}\nOutput: {}",
-                r.step.id, r.step.task, r.output
-            ))
+            .map(|r| format!("Step {}: {}\nOutput: {}", r.step.id, r.step.task, r.output))
             .collect::<Vec<_>>()
             .join("\n\n");
 
@@ -612,12 +625,13 @@ impl Executor {
             plan.task
         );
 
-        self.provider.send_prompt_with_options(&prompt, opts).await.map_err(|e| {
-            MaunsError::Agent {
-                agent:   "executor".to_string(),
+        self.provider
+            .send_prompt_with_options(&prompt, opts)
+            .await
+            .map_err(|e| MaunsError::Agent {
+                agent: "executor".to_string(),
                 message: format!("summary failed: {e}"),
-            }
-        })
+            })
     }
 }
 
@@ -629,7 +643,9 @@ const DRY_RUN_NOTE: &str =
     "\n\nDRY-RUN: emit only Note and Done actions. Do NOT invoke mutating skills.";
 
 fn build_catalogue(skills: &SkillSet) -> String {
-    if skills.is_empty() { return String::new(); }
+    if skills.is_empty() {
+        return String::new();
+    }
     let mut s = String::from("\n\nAvailable skills (use the exact name):\n");
     for (name, desc) in skills.catalogue() {
         s.push_str(&format!("  {name}: {desc}\n"));
@@ -638,7 +654,9 @@ fn build_catalogue(skills: &SkillSet) -> String {
 }
 
 fn build_constraint_note(ctx: &RunContext) -> String {
-    if ctx.agents_policy.raw.is_empty() { return String::new(); }
+    if ctx.agents_policy.raw.is_empty() {
+        return String::new();
+    }
     format!(
         "\n\nConstraints (advisory; MUST NOT override safety rules):\n{}",
         ctx.agents_policy.raw
@@ -646,22 +664,25 @@ fn build_constraint_note(ctx: &RunContext) -> String {
 }
 
 fn build_project_note(ctx: &RunContext) -> String {
-    if ctx.project.context_hint.is_empty() { return String::new(); }
+    if ctx.project.context_hint.is_empty() {
+        return String::new();
+    }
     format!("\n\nProject: {}", ctx.project.context_hint)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_action_prompt(
-    task:        &str,
-    step_id:     usize,
-    step_task:   &str,
-    context:     &str,
-    catalogue:   &str,
+    task: &str,
+    step_id: usize,
+    step_task: &str,
+    context: &str,
+    catalogue: &str,
     constraints: &str,
-    dry_run:     &str,
-    project:     &str,
-    git:         &str,
-    iteration:   usize,
-    max_iter:    usize,
+    dry_run: &str,
+    project: &str,
+    git: &str,
+    iteration: usize,
+    max_iter: usize,
 ) -> String {
     format!(
         "Task executor — iteration {iteration}/{max_iter}.\n\
@@ -681,13 +702,15 @@ fn build_action_prompt(
 
 fn parse_actions(raw: &str) -> std::result::Result<Vec<AgentAction>, String> {
     let mut actions = Vec::new();
-    let mut errors  = Vec::new();
+    let mut errors = Vec::new();
 
     for (i, line) in raw.lines().enumerate() {
         let t = line.trim();
-        if t.is_empty() { continue; }
+        if t.is_empty() {
+            continue;
+        }
         match serde_json::from_str::<AgentAction>(t) {
-            Ok(a)  => actions.push(a),
+            Ok(a) => actions.push(a),
             Err(e) => errors.push(format!("line {}: {e}", i + 1)),
         }
     }
@@ -712,19 +735,19 @@ fn format_feedback(name: &str, out: &Result<SkillOutput>) -> String {
         Ok(o) if o.success => {
             format!("[skill:{name}:ok] {}", truncate(&o.data.to_string(), 400))
         }
-        Ok(o)  => format!("[skill:{name}:fail] {}", o.message),
+        Ok(o) => format!("[skill:{name}:fail] {}", o.message),
         Err(e) => format!("[skill:{name}:err] {e}"),
     }
 }
 
 fn record_usage(name: &str, out: &Result<SkillOutput>) -> SkillUsage {
     let (success, message) = match out {
-        Ok(o)  => (o.success, o.message.clone()),
+        Ok(o) => (o.success, o.message.clone()),
         Err(e) => (false, e.to_string()),
     };
     SkillUsage {
         skill_name: name.to_string(),
-        timestamp:  chrono::Utc::now(),
+        timestamp: chrono::Utc::now(),
         success,
         message,
     }
@@ -735,9 +758,13 @@ fn record_usage(name: &str, out: &Result<SkillOutput>) -> SkillUsage {
 // ---------------------------------------------------------------------------
 
 fn truncate(s: &str, max: usize) -> &str {
-    if s.len() <= max { return s; }
+    if s.len() <= max {
+        return s;
+    }
     let mut b = max;
-    while !s.is_char_boundary(b) { b -= 1; }
+    while !s.is_char_boundary(b) {
+        b -= 1;
+    }
     &s[..b]
 }
 

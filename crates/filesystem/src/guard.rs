@@ -61,10 +61,10 @@ impl std::fmt::Display for SafePath {
 /// Validates and confines all path requests to a workspace root directory.
 #[derive(Debug, Clone)]
 pub struct PathGuard {
-    workspace_root:  PathBuf,
-    allow_hidden:    bool,
-    size_limit:      u64,
-    ignore_rules:    IgnoreRules,
+    workspace_root: PathBuf,
+    allow_hidden: bool,
+    size_limit: u64,
+    ignore_rules: IgnoreRules,
 }
 
 impl PathGuard {
@@ -184,10 +184,7 @@ impl PathGuard {
 
         if safe.as_path().is_file() {
             let meta = std::fs::metadata(safe.as_path()).map_err(|e| {
-                MaunsError::Filesystem(format!(
-                    "cannot stat '{}': {e}",
-                    safe.as_path().display()
-                ))
+                MaunsError::Filesystem(format!("cannot stat '{}': {e}", safe.as_path().display()))
             })?;
             if meta.len() > self.size_limit {
                 return Err(MaunsError::Filesystem(format!(
@@ -227,9 +224,11 @@ fn normalize_lexically(path: &Path) -> PathBuf {
     let mut out = PathBuf::new();
     for component in path.components() {
         match component {
-            Component::CurDir    => {}
-            Component::ParentDir => { out.pop(); }
-            other                => out.push(other.as_os_str()),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                out.pop();
+            }
+            other => out.push(other.as_os_str()),
         }
     }
     out
@@ -258,7 +257,9 @@ mod tests {
 
     #[test]
     fn blocks_node_modules() {
-        let err = guard().validate("node_modules/express/index.js").unwrap_err();
+        let err = guard()
+            .validate("node_modules/express/index.js")
+            .unwrap_err();
         assert!(matches!(err, MaunsError::RestrictedPath(_)));
     }
 
@@ -282,7 +283,7 @@ mod tests {
     fn allows_normal_path() {
         let result = guard().validate("src/main.rs");
         match result {
-            Ok(p)  => assert!(p.as_path().starts_with(guard().workspace_root())),
+            Ok(p) => assert!(p.as_path().starts_with(guard().workspace_root())),
             Err(e) => panic!("unexpected: {e}"),
         }
     }

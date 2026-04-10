@@ -19,12 +19,12 @@ pub enum Language {
 impl std::fmt::Display for Language {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Language::Rust       => write!(f, "Rust"),
+            Language::Rust => write!(f, "Rust"),
             Language::JavaScript => write!(f, "JavaScript"),
             Language::TypeScript => write!(f, "TypeScript"),
-            Language::Python     => write!(f, "Python"),
-            Language::Go         => write!(f, "Go"),
-            Language::Unknown    => write!(f, "unknown"),
+            Language::Python => write!(f, "Python"),
+            Language::Go => write!(f, "Go"),
+            Language::Unknown => write!(f, "unknown"),
         }
     }
 }
@@ -44,11 +44,11 @@ impl std::fmt::Display for ProjectType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ProjectType::CargoWorkspace => write!(f, "Cargo workspace"),
-            ProjectType::CargoCrate     => write!(f, "Cargo crate"),
-            ProjectType::NodePackage    => write!(f, "Node.js package"),
-            ProjectType::PythonPackage  => write!(f, "Python package"),
-            ProjectType::GoModule       => write!(f, "Go module"),
-            ProjectType::Unknown        => write!(f, "unknown"),
+            ProjectType::CargoCrate => write!(f, "Cargo crate"),
+            ProjectType::NodePackage => write!(f, "Node.js package"),
+            ProjectType::PythonPackage => write!(f, "Python package"),
+            ProjectType::GoModule => write!(f, "Go module"),
+            ProjectType::Unknown => write!(f, "unknown"),
         }
     }
 }
@@ -56,7 +56,7 @@ impl std::fmt::Display for ProjectType {
 /// Detected project information.
 #[derive(Debug, Clone)]
 pub struct ProjectInfo {
-    pub language:     Language,
+    pub language: Language,
     pub project_type: ProjectType,
     /// Non-empty hint string injected into agent prompts.
     pub context_hint: String,
@@ -65,7 +65,7 @@ pub struct ProjectInfo {
 impl Default for ProjectInfo {
     fn default() -> Self {
         Self {
-            language:     Language::Unknown,
+            language: Language::Unknown,
             project_type: ProjectType::Unknown,
             context_hint: String::new(),
         }
@@ -84,7 +84,7 @@ pub fn detect(root: impl AsRef<Path>) -> ProjectInfo {
             ProjectType::CargoCrate
         };
         return ProjectInfo {
-            language:     Language::Rust,
+            language: Language::Rust,
             project_type: proj.clone(),
             context_hint: format!(
                 "This is a {proj}. Use cargo conventions: src/lib.rs for libraries, \
@@ -116,7 +116,7 @@ pub fn detect(root: impl AsRef<Path>) -> ProjectInfo {
         || root.join("requirements.txt").exists()
     {
         return ProjectInfo {
-            language:     Language::Python,
+            language: Language::Python,
             project_type: ProjectType::PythonPackage,
             context_hint: "This is a Python project. Follow PEP 8 conventions and \
                            respect the existing package structure."
@@ -127,7 +127,7 @@ pub fn detect(root: impl AsRef<Path>) -> ProjectInfo {
     // Go
     if root.join("go.mod").exists() {
         return ProjectInfo {
-            language:     Language::Go,
+            language: Language::Go,
             project_type: ProjectType::GoModule,
             context_hint: "This is a Go module. Follow idiomatic Go conventions \
                            and respect the module path in go.mod."
@@ -140,7 +140,7 @@ pub fn detect(root: impl AsRef<Path>) -> ProjectInfo {
 
 fn is_cargo_workspace(root: &Path) -> bool {
     let cargo_toml = match std::fs::read_to_string(root.join("Cargo.toml")) {
-        Ok(s)  => s,
+        Ok(s) => s,
         Err(_) => return false,
     };
     cargo_toml.contains("[workspace]")

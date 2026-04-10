@@ -58,23 +58,20 @@ impl Filesystem {
     /// Read the full text content of a file.
     pub fn read_file(&self, path: impl AsRef<Path>) -> Result<String> {
         let safe = self.guard.validate(path)?;
-        std::fs::read_to_string(safe.as_path()).map_err(|e| {
-            MaunsError::Filesystem(format!("read_file '{}' failed: {e}", safe))
-        })
+        std::fs::read_to_string(safe.as_path())
+            .map_err(|e| MaunsError::Filesystem(format!("read_file '{}' failed: {e}", safe)))
     }
 
     /// List directory entries as relative-path strings.
     pub fn list_dir(&self, path: impl AsRef<Path>) -> Result<Vec<String>> {
         let safe = self.guard.validate(path)?;
-        let read = std::fs::read_dir(safe.as_path()).map_err(|e| {
-            MaunsError::Filesystem(format!("list_dir '{}' failed: {e}", safe))
-        })?;
+        let read = std::fs::read_dir(safe.as_path())
+            .map_err(|e| MaunsError::Filesystem(format!("list_dir '{}' failed: {e}", safe)))?;
 
         let mut entries = Vec::new();
         for entry in read {
-            let entry = entry.map_err(|e| {
-                MaunsError::Filesystem(format!("list_dir entry error: {e}"))
-            })?;
+            let entry =
+                entry.map_err(|e| MaunsError::Filesystem(format!("list_dir entry error: {e}")))?;
             entries.push(entry.file_name().to_string_lossy().into_owned());
         }
         entries.sort();
@@ -89,11 +86,7 @@ impl Filesystem {
     ///
     /// Always generates and records a diff.
     /// In dry-run mode the file is not touched.
-    pub fn write_file(
-        &mut self,
-        path: impl AsRef<Path>,
-        content: &str,
-    ) -> Result<String> {
+    pub fn write_file(&mut self, path: impl AsRef<Path>, content: &str) -> Result<String> {
         let safe = self.guard.validate(path)?;
         let path_str = safe.to_string();
 
@@ -119,8 +112,7 @@ impl Filesystem {
                 path = %path_str,
                 "skipping write (dry-run mode)"
             );
-            self.tracker
-                .record_new(&path_str, operation, &diff, false);
+            self.tracker.record_new(&path_str, operation, &diff, false);
             return Ok(diff);
         }
 
@@ -139,8 +131,7 @@ impl Filesystem {
         })?;
 
         info!(filesystem = "write", path = %path_str, "file written");
-        self.tracker
-            .record_new(&path_str, operation, &diff, true);
+        self.tracker.record_new(&path_str, operation, &diff, true);
         Ok(diff)
     }
 

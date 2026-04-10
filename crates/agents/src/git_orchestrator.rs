@@ -8,10 +8,7 @@ use mauns_core::{
     types::{FileChange, GitOutcome, RunContext},
 };
 use mauns_git::{
-    branch::push_branch,
-    commit::stage_and_commit,
-    repo::GitRepo,
-    safety::branch_name,
+    branch::push_branch, commit::stage_and_commit, repo::GitRepo, safety::branch_name,
 };
 use mauns_github::{
     client::GitHubClient,
@@ -22,7 +19,7 @@ use tracing::{info, warn};
 /// Configuration for the git/github step, resolved from CLI flags and config.
 #[derive(Debug, Clone)]
 pub struct GitConfig {
-    pub create_pr:     bool,
+    pub create_pr: bool,
     pub commit_prefix: String,
 }
 
@@ -61,17 +58,19 @@ pub async fn run_git_workflow(
 
     let applied: Vec<&FileChange> = change_log.iter().filter(|c| c.applied).collect();
     if applied.is_empty() {
-        info!(git = "workflow", "no applied changes; skipping git workflow");
+        info!(
+            git = "workflow",
+            "no applied changes; skipping git workflow"
+        );
         return Ok(None);
     }
 
-    let cwd = std::env::current_dir().map_err(|e| {
-        MaunsError::Git(format!("cannot determine working directory: {e}"))
-    })?;
+    let cwd = std::env::current_dir()
+        .map_err(|e| MaunsError::Git(format!("cannot determine working directory: {e}")))?;
 
     let mut repo = GitRepo::open_or_init(&cwd)?;
 
-    let ts     = chrono::Utc::now();
+    let ts = chrono::Utc::now();
     let branch = branch_name(task, ts);
 
     repo.create_and_checkout(&branch)?;
@@ -81,21 +80,18 @@ pub async fn run_git_workflow(
 
     info!(git = "workflow", branch = %branch, commit = %commit_id, "commit complete");
 
-    let pr_url = attempt_push_and_pr(
-        &repo,
-        &branch,
-        task,
-        summary,
-        change_log,
-        git_cfg,
-    )
-    .await
-    .unwrap_or_else(|e| {
-        warn!(git = "workflow", error = %e, "push/PR step failed; local commit preserved");
-        None
-    });
+    let pr_url = attempt_push_and_pr(&repo, &branch, task, summary, change_log, git_cfg)
+        .await
+        .unwrap_or_else(|e| {
+            warn!(git = "workflow", error = %e, "push/PR step failed; local commit preserved");
+            None
+        });
 
-    Ok(Some(GitOutcome { branch, commit_id, pr_url }))
+    Ok(Some(GitOutcome {
+        branch,
+        commit_id,
+        pr_url,
+    }))
 }
 
 async fn attempt_push_and_pr(
@@ -138,12 +134,12 @@ async fn attempt_push_and_pr(
 
     let pr_req = PrRequest {
         owner,
-        repo:        repo_name,
+        repo: repo_name,
         head_branch: branch.to_string(),
         base_branch: base,
-        task:        task.to_string(),
-        summary:     summary.to_string(),
-        change_log:  change_log.to_vec(),
+        task: task.to_string(),
+        summary: summary.to_string(),
+        change_log: change_log.to_vec(),
     };
 
     let pr = create_pull_request(&gh_client, &pr_req).await?;

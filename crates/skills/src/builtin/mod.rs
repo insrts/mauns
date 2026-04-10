@@ -16,6 +16,8 @@ use crate::skillset::SkillSet;
 pub fn default_skillset(guard: Arc<PathGuard>, dry_run: bool) -> SkillSet {
     SkillSet::new()
         .with_skill(Arc::new(FileReadSkill::new(Arc::clone(&guard))))
-        .with_skill(Arc::new(FileWriteSkill::new(Arc::clone(&guard)).with_dry_run(dry_run)))
+        .with_skill(Arc::new(
+            FileWriteSkill::new(Arc::clone(&guard)).with_dry_run(dry_run),
+        ))
         .with_skill(Arc::new(DirListSkill::new(Arc::clone(&guard))))
 }

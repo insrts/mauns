@@ -13,13 +13,19 @@ pub struct SamplingOptions {
 impl SamplingOptions {
     /// Standard options: mild creativity suitable for agent tasks.
     pub fn standard() -> Self {
-        Self { temperature: 0.2, top_p: 0.95 }
+        Self {
+            temperature: 0.2,
+            top_p: 0.95,
+        }
     }
 
     /// Fully deterministic: temperature 0, top_p 1.
     /// Produces stable, reproducible outputs.
     pub fn deterministic() -> Self {
-        Self { temperature: 0.0, top_p: 1.0 }
+        Self {
+            temperature: 0.0,
+            top_p: 1.0,
+        }
     }
 }
 
@@ -33,8 +39,8 @@ pub trait LlmProvider: Send + Sync {
     /// Default implementation delegates to `send_prompt` (ignores options).
     async fn send_prompt_with_options(
         &self,
-        input:   &str,
-        _opts:   &SamplingOptions,
+        input: &str,
+        _opts: &SamplingOptions,
     ) -> Result<String> {
         self.send_prompt(input).await
     }

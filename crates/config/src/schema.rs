@@ -4,24 +4,24 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct MaunsConfig {
-    pub provider:  String,
-    pub openai:    OpenAiConfig,
-    pub claude:    ClaudeConfig,
-    pub safety:    SafetyConfig,
-    pub logging:   LoggingConfig,
-    pub git:       GitConfig,
+    pub provider: String,
+    pub openai: OpenAiConfig,
+    pub claude: ClaudeConfig,
+    pub safety: SafetyConfig,
+    pub logging: LoggingConfig,
+    pub git: GitConfig,
     pub execution: ExecutionConfig,
 }
 
 impl Default for MaunsConfig {
     fn default() -> Self {
         Self {
-            provider:  "anthropic".to_string(),
-            openai:    OpenAiConfig::default(),
-            claude:    ClaudeConfig::default(),
-            safety:    SafetyConfig::default(),
-            logging:   LoggingConfig::default(),
-            git:       GitConfig::default(),
+            provider: "anthropic".to_string(),
+            openai: OpenAiConfig::default(),
+            claude: ClaudeConfig::default(),
+            safety: SafetyConfig::default(),
+            logging: LoggingConfig::default(),
+            git: GitConfig::default(),
             execution: ExecutionConfig::default(),
         }
     }
@@ -96,17 +96,11 @@ pub struct ClaudeConfig {
     pub api_key: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct SafetyConfig {
-    pub dry_run:              bool,
+    pub dry_run: bool,
     pub confirm_before_write: bool,
-}
-
-impl Default for SafetyConfig {
-    fn default() -> Self {
-        Self { dry_run: false, confirm_before_write: false }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -117,7 +111,9 @@ pub struct LoggingConfig {
 
 impl Default for LoggingConfig {
     fn default() -> Self {
-        Self { level: "info".to_string() }
+        Self {
+            level: "info".to_string(),
+        }
     }
 }
 
@@ -140,7 +136,7 @@ pub struct ExecutionConfig {
     /// Maximum number of agent iterations across all steps.
     pub max_iterations: usize,
     /// Maximum retries per step on failure or unparseable output.
-    pub max_retries:    usize,
+    pub max_retries: usize,
     /// Number of recent step/skill outputs kept in full context.
     pub context_window: usize,
 }
@@ -149,7 +145,7 @@ impl Default for ExecutionConfig {
     fn default() -> Self {
         Self {
             max_iterations: 20,
-            max_retries:    3,
+            max_retries: 3,
             context_window: 6,
         }
     }

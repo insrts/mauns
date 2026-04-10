@@ -2,11 +2,7 @@ use std::sync::Arc;
 
 use mauns_core::error::{MaunsError, Result};
 
-use crate::{
-    anthropic::AnthropicProvider,
-    openai::OpenAiProvider,
-    provider::LlmProvider,
-};
+use crate::{anthropic::AnthropicProvider, openai::OpenAiProvider, provider::LlmProvider};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProviderKind {
@@ -19,7 +15,7 @@ impl std::str::FromStr for ProviderKind {
 
     fn from_str(s: &str) -> Result<Self> {
         match s.to_lowercase().as_str() {
-            "openai"               => Ok(ProviderKind::OpenAi),
+            "openai" => Ok(ProviderKind::OpenAi),
             "anthropic" | "claude" => Ok(ProviderKind::Anthropic),
             other => Err(MaunsError::InvalidProvider(other.to_string())),
         }

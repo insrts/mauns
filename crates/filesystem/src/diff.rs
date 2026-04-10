@@ -75,9 +75,9 @@ pub fn diff_for_delete(path: &str, content: &str) -> String {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Edit {
-    Keep(usize, usize),   // (old_idx, new_idx)
-    Delete(usize),        // old_idx
-    Insert(usize),        // new_idx
+    Keep(usize, usize), // (old_idx, new_idx)
+    Delete(usize),      // old_idx
+    Insert(usize),      // new_idx
 }
 
 /// Compute diff edits using a simple LCS-based approach.

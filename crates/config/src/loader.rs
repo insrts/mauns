@@ -35,24 +35,38 @@ fn merge_toml(base: &mut MaunsConfig, text: &str) -> Result<()> {
     let parsed: MaunsConfig =
         toml::from_str(text).map_err(|e| MaunsError::TomlParse(e.to_string()))?;
 
-    if !parsed.provider.is_empty()          { base.provider  = parsed.provider; }
-    if !parsed.openai.api_key.is_empty()    { base.openai.api_key = parsed.openai.api_key; }
-    if !parsed.claude.api_key.is_empty()    { base.claude.api_key = parsed.claude.api_key; }
-    base.safety    = parsed.safety;
-    base.logging   = parsed.logging;
-    base.git       = parsed.git;
+    if !parsed.provider.is_empty() {
+        base.provider = parsed.provider;
+    }
+    if !parsed.openai.api_key.is_empty() {
+        base.openai.api_key = parsed.openai.api_key;
+    }
+    if !parsed.claude.api_key.is_empty() {
+        base.claude.api_key = parsed.claude.api_key;
+    }
+    base.safety = parsed.safety;
+    base.logging = parsed.logging;
+    base.git = parsed.git;
     base.execution = parsed.execution;
     Ok(())
 }
 
 fn apply_env_overrides(cfg: &mut MaunsConfig) {
-    if let Ok(v) = std::env::var("MAUNS_PROVIDER") { cfg.provider = v; }
-    if let Ok(v) = std::env::var("OPENAI_API_KEY") { cfg.openai.api_key = v; }
-    if let Ok(v) = std::env::var("CLAUDE_API_KEY") { cfg.claude.api_key = v; }
+    if let Ok(v) = std::env::var("MAUNS_PROVIDER") {
+        cfg.provider = v;
+    }
+    if let Ok(v) = std::env::var("OPENAI_API_KEY") {
+        cfg.openai.api_key = v;
+    }
+    if let Ok(v) = std::env::var("CLAUDE_API_KEY") {
+        cfg.claude.api_key = v;
+    }
     if let Ok(v) = std::env::var("MAUNS_DRY_RUN") {
         cfg.safety.dry_run = matches!(v.to_lowercase().as_str(), "true" | "1");
     }
-    if let Ok(v) = std::env::var("MAUNS_LOG") { cfg.logging.level = v; }
+    if let Ok(v) = std::env::var("MAUNS_LOG") {
+        cfg.logging.level = v;
+    }
 }
 
 fn home_dir() -> Option<PathBuf> {

@@ -44,8 +44,11 @@ pub fn print_report(report: &TaskReport) {
 
     for result in &report.execution.results {
         let retry_note = if result.retries_used > 0 {
-            format!("  [{} retr{}]", result.retries_used,
-                if result.retries_used == 1 { "y" } else { "ies" })
+            format!(
+                "  [{} retr{}]",
+                result.retries_used,
+                if result.retries_used == 1 { "y" } else { "ies" }
+            )
         } else {
             String::new()
         };
@@ -60,7 +63,11 @@ pub fn print_report(report: &TaskReport) {
     println!();
 
     println!("--- VERIFICATION ---");
-    let verdict = if report.verification.passed { "PASSED" } else { "FAILED" };
+    let verdict = if report.verification.passed {
+        "PASSED"
+    } else {
+        "FAILED"
+    };
     println!("  verdict:  {verdict}");
     println!("  feedback: {}", report.verification.feedback.trim());
     if report.verification.retry_suggested && !report.verification.passed {
@@ -74,7 +81,7 @@ pub fn print_report(report: &TaskReport) {
             let status = if change.applied { "applied" } else { "dry-run" };
             let op = match change.operation {
                 FileOperation::Create => "create",
-                FileOperation::Edit   => "edit",
+                FileOperation::Edit => "edit",
                 FileOperation::Delete => "delete",
             };
             println!("  [{}] {} {}", status, op, change.path);
@@ -95,7 +102,11 @@ pub fn print_report(report: &TaskReport) {
             if entry.message.is_empty() {
                 println!("  [{status}] {ts}  {}", entry.skill_name);
             } else {
-                println!("  [{status}] {ts}  {}  -- {}", entry.skill_name, entry.message.trim());
+                println!(
+                    "  [{status}] {ts}  {}  -- {}",
+                    entry.skill_name,
+                    entry.message.trim()
+                );
             }
         }
         println!();
