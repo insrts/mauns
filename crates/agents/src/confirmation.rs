@@ -68,10 +68,7 @@ fn prompt_user() -> Result<()> {
 
         let stdin = io::stdin();
         let mut line = String::new();
-        stdin
-            .lock()
-            .read_line(&mut line)
-            .map_err(MaunsError::Io)?;
+        stdin.lock().read_line(&mut line).map_err(MaunsError::Io)?;
 
         match line.trim().to_lowercase().as_str() {
             "y" | "yes" => {
