@@ -310,6 +310,10 @@ impl Executor {
         // Respect Plan::execution_order() for dependency-aware execution.
         let ordered_steps = plan.execution_order();
 
+        if let Some(r) = reporter {
+            r.on_execution_start();
+        }
+
         'steps: for step in ordered_steps {
             // Check interrupt before starting each step.
             if interrupt.load(std::sync::atomic::Ordering::SeqCst) {

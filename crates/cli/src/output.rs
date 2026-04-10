@@ -16,6 +16,10 @@ impl ProgressReporter for Ui {
         self.print_plan(plan);
     }
 
+    fn on_execution_start(&self) {
+        self.print_execution_start();
+    }
+
     fn on_step_complete(&self, id: usize, task: &str) {
         self.print_step_completion(id, task);
     }
@@ -108,11 +112,19 @@ pub fn print_report(report: &TaskReport) {
     }
 
     println!("Summary:");
-    println!("  tokens:  {} ({} prompt, {} completion)",
+    println!(
+        "  tokens:  {} ({} prompt, {} completion)",
         report.execution.token_usage.total(),
         report.execution.token_usage.prompt_tokens,
         report.execution.token_usage.completion_tokens,
     );
-    println!("  status:  {}", if report.verification.passed { "Success" } else { "Incomplete" });
+    println!(
+        "  status:  {}",
+        if report.verification.passed {
+            "Success"
+        } else {
+            "Incomplete"
+        }
+    );
     println!();
 }

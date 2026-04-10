@@ -9,9 +9,13 @@ pub fn handle_error(err: &MaunsError) {
         MaunsError::LlmProvider(msg) => {
             if msg.contains("429") || msg.contains("quota") || msg.contains("insufficient_quota") {
                 title = "LLM API error: quota exceeded.";
-                message = "Your API key has no remaining credits or has hit its rate limit.".to_string();
+                message =
+                    "Your API key has no remaining credits or has hit its rate limit.".to_string();
                 fix = Some("Fix:\n  - Add billing at the provider's platform (OpenAI/Anthropic)\n  - Or switch provider: mauns --provider <name> run \"...\"");
-            } else if msg.contains("401") || msg.contains("invalid_api_key") || msg.contains("authentication") {
+            } else if msg.contains("401")
+                || msg.contains("invalid_api_key")
+                || msg.contains("authentication")
+            {
                 title = "LLM API error: authentication failed.";
                 message = "The provided API key is invalid or expired.".to_string();
                 fix = Some("Fix:\n  - Check your OPENAI_API_KEY or CLAUDE_API_KEY environment variables.\n  - Or update your mauns.toml configuration.");

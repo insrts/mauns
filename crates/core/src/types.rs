@@ -102,6 +102,7 @@ pub struct TokenUsage {
 
 pub trait ProgressReporter: Send + Sync {
     fn on_plan(&self, plan: &Plan);
+    fn on_execution_start(&self);
     fn on_step_complete(&self, id: usize, task: &str);
     fn on_step_failure(&self, id: usize, task: &str, error: &str);
     fn on_result(&self, summary: &str);
