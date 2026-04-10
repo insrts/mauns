@@ -1,0 +1,31 @@
+# Rust build artifacts
+target/
+
+# Node
+node_modules/
+
+# Git history
+.git/
+.gitignore
+.gitattributes
+
+# Logs
+logs/
+*.log
+
+# Environment files
+.env
+.env.*
+
+# Editor and OS artifacts
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# CI and documentation (not needed in image)
+.github/
+docs/
+
+# Test outputs
+*.profraw

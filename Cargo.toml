@@ -1,0 +1,30 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/llm",
+    "crates/agents",
+    "crates/cli",
+    "crates/filesystem",
+    "crates/config",
+    "crates/git",
+    "crates/github",
+    "crates/skills",
+    "crates/sdk",
+    "apps/cli",
+]
+
+[workspace.dependencies]
+tokio              = { version = "1", features = ["full"] }
+async-trait        = "0.1"
+serde              = { version = "1", features = ["derive"] }
+serde_json         = "1"
+reqwest            = { version = "0.11", features = ["json", "rustls-tls"], default-features = false }
+anyhow             = "1"
+thiserror          = "1"
+tracing            = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap               = { version = "=4.4.18", features = ["derive"] }
+toml               = "0.7"
+chrono             = { version = "0.4", features = ["serde"] }
+git2               = { version = "0.18", default-features = false }

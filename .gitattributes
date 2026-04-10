@@ -1,0 +1,42 @@
+# Normalize line endings to LF on commit, checkout as LF on all platforms.
+* text=auto eol=lf
+
+# Rust source files
+*.rs text eol=lf
+
+# TOML config files
+*.toml text eol=lf
+
+# Markdown
+*.md text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+
+# JavaScript / JSON
+*.js  text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+
+# YAML
+*.yml  text eol=lf
+*.yaml text eol=lf
+
+# Binary files — do not normalize
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.tar binary
+*.tar.gz binary
+*.zip binary
+*.tgz binary
+
+# Lock files — treat as text but do not diff
+Cargo.lock linguist-generated=true
+package-lock.json linguist-generated=true

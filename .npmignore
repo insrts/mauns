@@ -1,0 +1,32 @@
+# Rust source and build artifacts
+crates/
+apps/
+target/
+Cargo.toml
+Cargo.lock
+*.rs
+
+# Tests and CI
+tests/
+.github/
+
+# Docker and infrastructure
+Dockerfile
+docker-compose.yml
+docker-setup.sh
+helm/
+
+# Development configs
+.cargo/
+.rustfmt.toml
+.clippy.toml
+Makefile
+
+# Logs and editor artifacts
+*.log
+.vscode/
+.idea/
+
+# OS artifacts
+.DS_Store
+Thumbs.db

@@ -1,0 +1,20 @@
+services:
+  mauns:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/mauns/mauns:latest
+    container_name: mauns
+    stdin_open: true
+    tty: true
+    working_dir: /workspace
+    volumes:
+      - type: bind
+        source: .
+        target: /workspace
+    environment:
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - MAUNS_LOG=${MAUNS_LOG:-info}
+    command: ["run", "${MAUNS_TASK:-list files in the current directory}"]

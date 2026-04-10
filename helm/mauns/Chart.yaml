@@ -1,0 +1,20 @@
+apiVersion: v2
+name: mauns
+description: Deterministic AI agent CLI for developers
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/mauns/mauns
+sources:
+  - https://github.com/mauns/mauns
+maintainers:
+  - name: Mauns contributors
+    url: https://github.com/mauns/mauns
+keywords:
+  - ai
+  - agent
+  - cli
+  - llm
+  - rust
+annotations:
+  artifacthub.io/license: MIT

@@ -1,0 +1,15 @@
+[package]
+name    = "mauns-cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+mauns-core       = { path = "../core" }
+mauns-llm        = { path = "../llm" }
+mauns-agents     = { path = "../agents" }
+mauns-filesystem = { path = "../filesystem" }
+clap             = { workspace = true }
+tokio            = { workspace = true }
+tracing          = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow           = { workspace = true }

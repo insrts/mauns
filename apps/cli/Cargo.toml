@@ -1,0 +1,23 @@
+[package]
+name    = "mauns"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "mauns"
+path = "src/main.rs"
+
+[dependencies]
+mauns-core       = { path = "../../crates/core" }
+mauns-llm        = { path = "../../crates/llm" }
+mauns-agents     = { path = "../../crates/agents" }
+mauns-cli        = { path = "../../crates/cli" }
+mauns-config     = { path = "../../crates/config" }
+mauns-filesystem = { path = "../../crates/filesystem" }
+mauns-git        = { path = "../../crates/git" }
+mauns-github     = { path = "../../crates/github" }
+clap             = { workspace = true }
+tokio            = { workspace = true }
+tracing          = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow           = { workspace = true }

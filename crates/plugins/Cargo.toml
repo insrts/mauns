@@ -1,0 +1,12 @@
+[package]
+name    = "mauns-plugins"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+mauns-core   = { path = "../core" }
+mauns-skills = { path = "../skills" }
+tracing      = { workspace = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "macros"] }

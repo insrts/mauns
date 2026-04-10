@@ -1,0 +1,36 @@
+# Rust
+target/
+# Cargo.lock is committed for binaries, excluded for libraries.
+# This repo produces a binary, so Cargo.lock is tracked.
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# Editor artifacts
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node (npm wrapper)
+node_modules/
+npm-debug.log*
+
+# Build output
+dist/
+out/
+
+# Helm packaged charts
+*.tgz

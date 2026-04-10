@@ -1,0 +1,62 @@
+# Default values for the Mauns Helm chart.
+# Override with --set or a custom values file.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/mauns/mauns
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to Chart.appVersion
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Environment variables injected into the container.
+# API keys should be provided via existingSecret rather than plain values.
+env:
+  MAUNS_LOG: "info"
+  # CLAUDE_API_KEY and OPENAI_API_KEY should come from a secret (see below).
+
+# Reference an existing Kubernetes secret containing API keys.
+# The secret must have keys: CLAUDE_API_KEY and/or OPENAI_API_KEY.
+existingSecret: ""
+
+# Command to pass to the Mauns binary (used as args).
+# Example: ["run", "refactor the auth module", "--dry-run"]
+args: []
+
+serviceAccount:
+  create: false
+  name: ""
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+# Mount the host workspace into the container.
+workspace:
+  enabled: true
+  hostPath: "/workspace"
+  mountPath: "/workspace"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
