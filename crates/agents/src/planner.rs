@@ -75,25 +75,32 @@ impl Planner {
         let raw = self.provider.send_prompt(&prompt).await?;
 
         let parsed = parse_plan_json(raw.trim()).map_err(|e| MaunsError::Agent {
-            agent:   "planner".to_string(),
+            agent: "planner".to_string(),
             message: format!("plan parse failed: {e}\nraw: {raw}"),
         })?;
 
         if parsed.is_empty() {
             return Err(MaunsError::Agent {
-                agent:   "planner".to_string(),
+                agent: "planner".to_string(),
                 message: "planner returned zero steps".to_string(),
             });
         }
 
         validate_plan(&parsed).map_err(|e| MaunsError::Agent {
-            agent:   "planner".to_string(),
+            agent: "planner".to_string(),
             message: e,
         })?;
 
-        info!(agent = "planner", step_count = parsed.len(), "plan produced");
+        info!(
+            agent = "planner",
+            step_count = parsed.len(),
+            "plan produced"
+        );
 
-        Ok(Plan { task: task.to_string(), steps: parsed })
+        Ok(Plan {
+            task: task.to_string(),
+            steps: parsed,
+        })
     }
 }
 
@@ -115,8 +122,7 @@ fn parse_plan_json(text: &str) -> std::result::Result<Vec<Step>, String> {
         let id = item
             .get("id")
             .and_then(|v| v.as_u64())
-            .ok_or_else(|| format!("step[{i}] missing integer 'id'"))?
-            as usize;
+            .ok_or_else(|| format!("step[{i}] missing integer 'id'"))? as usize;
 
         let task = item
             .get("task")
@@ -138,7 +144,11 @@ fn parse_plan_json(text: &str) -> std::result::Result<Vec<Step>, String> {
             })
             .unwrap_or_default();
 
-        steps.push(Step { id, task, depends_on });
+        steps.push(Step {
+            id,
+            task,
+            depends_on,
+        });
     }
 
     Ok(steps)
@@ -212,33 +222,53 @@ mod tests {
     #[test]
     fn validate_rejects_duplicate_ids() {
         let steps = vec![
-            Step { id: 1, task: "a".into(), depends_on: vec![] },
-            Step { id: 1, task: "b".into(), depends_on: vec![] },
+            Step {
+                id: 1,
+                task: "a".into(),
+                depends_on: vec![],
+            },
+            Step {
+                id: 1,
+                task: "b".into(),
+                depends_on: vec![],
+            },
         ];
         assert!(validate_plan(&steps).is_err());
     }
 
     #[test]
     fn validate_rejects_unknown_dependency() {
-        let steps = vec![
-            Step { id: 1, task: "a".into(), depends_on: vec![99] },
-        ];
+        let steps = vec![Step {
+            id: 1,
+            task: "a".into(),
+            depends_on: vec![99],
+        }];
         assert!(validate_plan(&steps).is_err());
     }
 
     #[test]
     fn validate_rejects_self_dependency() {
-        let steps = vec![
-            Step { id: 1, task: "a".into(), depends_on: vec![1] },
-        ];
+        let steps = vec![Step {
+            id: 1,
+            task: "a".into(),
+            depends_on: vec![1],
+        }];
         assert!(validate_plan(&steps).is_err());
     }
 
     #[test]
     fn validate_accepts_valid_plan() {
         let steps = vec![
-            Step { id: 1, task: "a".into(), depends_on: vec![] },
-            Step { id: 2, task: "b".into(), depends_on: vec![1] },
+            Step {
+                id: 1,
+                task: "a".into(),
+                depends_on: vec![],
+            },
+            Step {
+                id: 2,
+                task: "b".into(),
+                depends_on: vec![1],
+            },
         ];
         assert!(validate_plan(&steps).is_ok());
     }

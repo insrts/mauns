@@ -6,7 +6,12 @@ pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
 
-    #[arg(long, global = true, default_value = "anthropic", env = "MAUNS_PROVIDER")]
+    #[arg(
+        long,
+        global = true,
+        default_value = "anthropic",
+        env = "MAUNS_PROVIDER"
+    )]
     pub provider: String,
 
     #[arg(long, global = true, default_value = "info", env = "MAUNS_LOG")]

@@ -12,28 +12,28 @@ use crate::client::GitHubClient;
 /// Input for creating a pull request.
 #[derive(Debug, Clone)]
 pub struct PrRequest {
-    pub owner:       String,
-    pub repo:        String,
+    pub owner: String,
+    pub repo: String,
     pub head_branch: String,
     pub base_branch: String,
-    pub task:        String,
-    pub summary:     String,
-    pub change_log:  Vec<FileChange>,
+    pub task: String,
+    pub summary: String,
+    pub change_log: Vec<FileChange>,
 }
 
 /// Minimal representation of the GitHub PR response.
 #[derive(Debug, Clone, Deserialize)]
 pub struct PrResponse {
     pub html_url: String,
-    pub number:   u64,
+    pub number: u64,
 }
 
 #[derive(Serialize)]
 struct CreatePrBody<'a> {
     title: &'a str,
-    body:  String,
-    head:  &'a str,
-    base:  &'a str,
+    body: String,
+    head: &'a str,
+    base: &'a str,
 }
 
 /// Create a pull request and return the response.
@@ -41,20 +41,17 @@ struct CreatePrBody<'a> {
 /// The PR title is derived from the task description.
 /// The PR body is built from the execution summary and the file change list.
 /// No LLM output is used in either field.
-pub async fn create_pull_request(
-    client: &GitHubClient,
-    req: &PrRequest,
-) -> Result<PrResponse> {
+pub async fn create_pull_request(client: &GitHubClient, req: &PrRequest) -> Result<PrResponse> {
     let title = pr_title(&req.task);
-    let body  = pr_body(&req.summary, &req.change_log);
+    let body = pr_body(&req.summary, &req.change_log);
 
     let path = format!("/repos/{}/{}/pulls", req.owner, req.repo);
 
     let payload = CreatePrBody {
         title: &title,
         body,
-        head:  &req.head_branch,
-        base:  &req.base_branch,
+        head: &req.head_branch,
+        base: &req.base_branch,
     };
 
     let response: PrResponse = client.post(&path, &payload).await?;
@@ -70,11 +67,7 @@ pub async fn create_pull_request(
 }
 
 /// Detect the default branch of a repository via the GitHub API.
-pub async fn default_branch(
-    client: &GitHubClient,
-    owner: &str,
-    repo: &str,
-) -> Result<String> {
+pub async fn default_branch(client: &GitHubClient, owner: &str, repo: &str) -> Result<String> {
     #[derive(Deserialize)]
     struct RepoInfo {
         default_branch: String,
@@ -111,12 +104,14 @@ pub fn parse_remote_url(url: &str) -> Result<(String, String)> {
 
 fn split_owner_repo(s: &str) -> Result<(String, String)> {
     let mut parts = s.splitn(2, '/');
-    let owner = parts.next().filter(|s| !s.is_empty()).ok_or_else(|| {
-        MaunsError::GitHub(format!("cannot extract owner from '{s}'"))
-    })?;
-    let repo = parts.next().filter(|s| !s.is_empty()).ok_or_else(|| {
-        MaunsError::GitHub(format!("cannot extract repo from '{s}'"))
-    })?;
+    let owner = parts
+        .next()
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| MaunsError::GitHub(format!("cannot extract owner from '{s}'")))?;
+    let repo = parts
+        .next()
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| MaunsError::GitHub(format!("cannot extract repo from '{s}'")))?;
     Ok((owner.to_string(), repo.to_string()))
 }
 

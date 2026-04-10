@@ -45,9 +45,9 @@ impl AgentSkill for DirListSkill {
             .params
             .get("path")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MaunsError::InvalidAction(
-                "dir_list requires a 'path' string parameter".to_string(),
-            ))?
+            .ok_or_else(|| {
+                MaunsError::InvalidAction("dir_list requires a 'path' string parameter".to_string())
+            })?
             .to_string();
 
         debug!(skill = "dir_list", path = %path);
@@ -55,14 +55,14 @@ impl AgentSkill for DirListSkill {
         let safe = self.guard.validate(&path)?;
 
         let read_dir = std::fs::read_dir(safe.as_path()).map_err(|e| MaunsError::Skill {
-            name:    "dir_list".to_string(),
+            name: "dir_list".to_string(),
             message: format!("cannot read directory '{}': {e}", path),
         })?;
 
         let mut entries: Vec<String> = Vec::new();
         for entry in read_dir {
             let entry = entry.map_err(|e| MaunsError::Skill {
-                name:    "dir_list".to_string(),
+                name: "dir_list".to_string(),
                 message: format!("directory entry error: {e}"),
             })?;
             entries.push(entry.file_name().to_string_lossy().into_owned());
@@ -85,7 +85,9 @@ mod tests {
     #[tokio::test]
     async fn lists_current_directory() {
         let skill = DirListSkill::new(make_guard());
-        let input = SkillInput { params: serde_json::json!({ "path": "." }) };
+        let input = SkillInput {
+            params: serde_json::json!({ "path": "." }),
+        };
         let out = skill.execute(input).await.unwrap();
         assert!(out.success);
         let entries = out.data["entries"].as_array().unwrap();
@@ -95,7 +97,9 @@ mod tests {
     #[tokio::test]
     async fn rejects_traversal() {
         let skill = DirListSkill::new(make_guard());
-        let input = SkillInput { params: serde_json::json!({ "path": "../.." }) };
+        let input = SkillInput {
+            params: serde_json::json!({ "path": "../.." }),
+        };
         let err = skill.execute(input).await.unwrap_err();
         assert!(matches!(err, MaunsError::PathTraversal(_)));
     }

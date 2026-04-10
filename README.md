@@ -41,15 +41,6 @@ docker run --rm -it \
   run "your task here"
 ```
 
-### Helm
-
-```sh
-helm repo add mauns https://mauns.github.io/charts
-helm repo update
-helm install mauns mauns/mauns \
-  --set env.CLAUDE_API_KEY=$CLAUDE_API_KEY
-```
-
 ---
 
 ## Getting Started

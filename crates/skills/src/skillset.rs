@@ -15,14 +15,14 @@ pub struct SkillSet {
     /// Ordered list for deterministic catalogue output.
     ordered: Vec<Arc<dyn AgentSkill>>,
     /// Internal map for O(1) lookup by name. Not exposed externally.
-    lookup:  HashMap<String, Arc<dyn AgentSkill>>,
+    lookup: HashMap<String, Arc<dyn AgentSkill>>,
 }
 
 impl SkillSet {
     pub fn new() -> Self {
         Self {
             ordered: Vec::new(),
-            lookup:  HashMap::new(),
+            lookup: HashMap::new(),
         }
     }
 
@@ -87,8 +87,12 @@ mod tests {
 
     #[async_trait]
     impl AgentSkill for Dummy {
-        fn name(&self) -> &str { &self.0 }
-        fn description(&self) -> &str { "dummy" }
+        fn name(&self) -> &str {
+            &self.0
+        }
+        fn description(&self) -> &str {
+            "dummy"
+        }
         async fn execute(&self, _: SkillInput) -> Result<SkillOutput> {
             Ok(SkillOutput::ok(serde_json::Value::Null))
         }
@@ -103,7 +107,9 @@ mod tests {
     #[test]
     fn dispatch_unknown_returns_not_found() {
         let s = SkillSet::new();
-        let e = s.dispatch("missing").unwrap_err();
+        let res = s.dispatch("missing");
+        assert!(res.is_err());
+        let e = res.err().unwrap();
         assert!(matches!(e, MaunsError::SkillNotFound(_)));
     }
 

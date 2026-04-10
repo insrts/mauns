@@ -21,13 +21,16 @@ use tracing::{debug, warn};
 use crate::skill::AgentSkill;
 
 pub struct FileWriteSkill {
-    guard:   Arc<PathGuard>,
+    guard: Arc<PathGuard>,
     dry_run: bool,
 }
 
 impl FileWriteSkill {
     pub fn new(guard: Arc<PathGuard>) -> Self {
-        Self { guard, dry_run: false }
+        Self {
+            guard,
+            dry_run: false,
+        }
     }
 
     pub fn with_dry_run(mut self, dry_run: bool) -> Self {
@@ -65,13 +68,13 @@ impl AgentSkill for FileWriteSkill {
 
         if let Some(parent) = safe.as_path().parent() {
             std::fs::create_dir_all(parent).map_err(|e| MaunsError::Skill {
-                name:    "file_write".to_string(),
+                name: "file_write".to_string(),
                 message: format!("cannot create directories for '{}': {e}", path),
             })?;
         }
 
         std::fs::write(safe.as_path(), &content).map_err(|e| MaunsError::Skill {
-            name:    "file_write".to_string(),
+            name: "file_write".to_string(),
             message: format!("cannot write '{}': {e}", path),
         })?;
 
@@ -84,18 +87,20 @@ fn extract_params(input: &SkillInput) -> Result<(String, String)> {
         .params
         .get("path")
         .and_then(|v| v.as_str())
-        .ok_or_else(|| MaunsError::InvalidAction(
-            "file_write requires a 'path' string parameter".to_string(),
-        ))?
+        .ok_or_else(|| {
+            MaunsError::InvalidAction("file_write requires a 'path' string parameter".to_string())
+        })?
         .to_string();
 
     let content = input
         .params
         .get("content")
         .and_then(|v| v.as_str())
-        .ok_or_else(|| MaunsError::InvalidAction(
-            "file_write requires a 'content' string parameter".to_string(),
-        ))?
+        .ok_or_else(|| {
+            MaunsError::InvalidAction(
+                "file_write requires a 'content' string parameter".to_string(),
+            )
+        })?
         .to_string();
 
     Ok((path, content))
@@ -113,7 +118,9 @@ mod tests {
     #[tokio::test]
     async fn rejects_missing_content() {
         let skill = FileWriteSkill::new(make_guard());
-        let input = SkillInput { params: serde_json::json!({ "path": "x.txt" }) };
+        let input = SkillInput {
+            params: serde_json::json!({ "path": "x.txt" }),
+        };
         let err = skill.execute(input).await.unwrap_err();
         assert!(matches!(err, MaunsError::InvalidAction(_)));
     }

@@ -18,24 +18,24 @@ use crate::{
 };
 
 pub struct Pipeline {
-    planner:      Planner,
-    executor:     Executor,
-    verifier:     Verifier,
-    git_config:   GitConfig,
+    planner: Planner,
+    executor: Executor,
+    verifier: Verifier,
+    git_config: GitConfig,
     extra_skills: Vec<Arc<dyn AgentSkill>>,
 }
 
 impl Pipeline {
     pub fn new(
-        provider:     Arc<dyn LlmProvider>,
-        git_cfg:      GitConfig,
+        provider: Arc<dyn LlmProvider>,
+        git_cfg: GitConfig,
         extra_skills: Vec<Arc<dyn AgentSkill>>,
     ) -> Self {
         Self {
-            planner:      Planner::new(Arc::clone(&provider)),
-            executor:     Executor::new(Arc::clone(&provider)),
-            verifier:     Verifier::new(Arc::clone(&provider)),
-            git_config:   git_cfg,
+            planner: Planner::new(Arc::clone(&provider)),
+            executor: Executor::new(Arc::clone(&provider)),
+            verifier: Verifier::new(Arc::clone(&provider)),
+            git_config: git_cfg,
             extra_skills,
         }
     }
@@ -51,7 +51,7 @@ impl Pipeline {
             max_retries   = ctx.max_retries,
         );
 
-        let cwd   = std::env::current_dir()
+        let cwd = std::env::current_dir()
             .map_err(|e| MaunsError::Filesystem(format!("cannot get cwd: {e}")))?;
         let guard = Arc::new(PathGuard::new(&cwd)?);
 
@@ -61,7 +61,7 @@ impl Pipeline {
         }
         info!(pipeline = "skills", count = skill_set.len());
 
-        let mut fs = Filesystem::new(ctx.dry_run)?;
+        let fs = Filesystem::new(ctx.dry_run)?;
 
         let plan = self.planner.plan(task, ctx).await?;
         info!(pipeline = "planner", steps = plan.steps.len());
@@ -72,10 +72,10 @@ impl Pipeline {
             .await?;
 
         info!(
-            pipeline    = "executor",
-            iterations  = execution.iterations,
-            retries     = execution.total_retries,
-            tokens      = execution.token_usage.total(),
+            pipeline = "executor",
+            iterations = execution.iterations,
+            retries = execution.total_retries,
+            tokens = execution.token_usage.total(),
             interrupted,
         );
 
@@ -83,8 +83,8 @@ impl Pipeline {
         let verification = if interrupted {
             warn!(pipeline = "verifier", "skipping verification (interrupted)");
             mauns_core::types::VerificationReport {
-                passed:          false,
-                feedback:        "Run was interrupted before completion.".to_string(),
+                passed: false,
+                feedback: "Run was interrupted before completion.".to_string(),
                 retry_suggested: true,
             }
         } else {
@@ -98,7 +98,7 @@ impl Pipeline {
         if ctx.confirm_writes && !ctx.vibe_mode && !interrupted {
             confirm_changes(&change_log, ctx.dry_run).map_err(|e| match e {
                 MaunsError::Aborted => MaunsError::Aborted,
-                other               => other,
+                other => other,
             })?;
         }
 
@@ -106,14 +106,7 @@ impl Pipeline {
         let git_outcome = if interrupted {
             None
         } else {
-            run_git_workflow(
-                task,
-                &execution.summary,
-                &change_log,
-                ctx,
-                &self.git_config,
-            )
-            .await?
+            run_git_workflow(task, &execution.summary, &change_log, ctx, &self.git_config).await?
         };
 
         Ok(TaskReport {

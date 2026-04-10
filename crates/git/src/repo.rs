@@ -11,7 +11,7 @@ use crate::safety;
 /// Thin wrapper around a `git2::Repository`.
 pub struct GitRepo {
     inner: Repository,
-    root:  PathBuf,
+    root: PathBuf,
 }
 
 impl GitRepo {
@@ -28,7 +28,10 @@ impl GitRepo {
             Err(_) => {
                 info!(git = "repo", path = %path.display(), "no repository found; initialising");
                 Repository::init(path).map_err(|e| {
-                    MaunsError::Git(format!("failed to init repository at '{}': {e}", path.display()))
+                    MaunsError::Git(format!(
+                        "failed to init repository at '{}': {e}",
+                        path.display()
+                    ))
                 })?
             }
         };
@@ -47,9 +50,10 @@ impl GitRepo {
     /// Return the name of the current HEAD branch, or an error if HEAD is
     /// detached or the repository has no commits yet.
     pub fn current_branch(&self) -> Result<String> {
-        let head = self.inner.head().map_err(|e| {
-            MaunsError::Git(format!("cannot resolve HEAD: {e}"))
-        })?;
+        let head = self
+            .inner
+            .head()
+            .map_err(|e| MaunsError::Git(format!("cannot resolve HEAD: {e}")))?;
 
         head.shorthand()
             .map(|s| s.to_string())
@@ -66,15 +70,16 @@ impl GitRepo {
             let head = self.inner.head().map_err(|e| {
                 MaunsError::Git(format!("cannot resolve HEAD for branch creation: {e}"))
             })?;
-            let oid = head.target().ok_or_else(|| {
-                MaunsError::Git("HEAD is not a direct reference".to_string())
-            })?;
-            self.inner.find_commit(oid).map_err(|e| {
-                MaunsError::Git(format!("cannot find HEAD commit: {e}"))
-            })?
+            let oid = head
+                .target()
+                .ok_or_else(|| MaunsError::Git("HEAD is not a direct reference".to_string()))?;
+            self.inner
+                .find_commit(oid)
+                .map_err(|e| MaunsError::Git(format!("cannot find HEAD commit: {e}")))?
         };
 
-        let git_branch = self.inner
+        let git_branch = self
+            .inner
             .branch(branch, &head_commit, false)
             .map_err(|e| MaunsError::Git(format!("failed to create branch '{branch}': {e}")))?;
 
@@ -97,14 +102,13 @@ impl GitRepo {
     }
 
     /// Expose a reference to the inner `git2::Repository` for staging/committing.
-    pub(crate) fn inner(&self) -> &Repository {
+    pub fn inner(&self) -> &Repository {
         &self.inner
     }
 
     /// Build a git `Signature` for Mauns commits.
     pub(crate) fn signature() -> Result<Signature<'static>> {
-        Signature::now("mauns", "mauns@localhost").map_err(|e| {
-            MaunsError::Git(format!("failed to build git signature: {e}"))
-        })
+        Signature::now("mauns", "mauns@localhost")
+            .map_err(|e| MaunsError::Git(format!("failed to build git signature: {e}")))
     }
 }

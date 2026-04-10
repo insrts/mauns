@@ -6,4 +6,4 @@ pub mod registry;
 
 pub use deterministic::DeterministicProvider;
 pub use provider::{LlmProvider, SamplingOptions};
-pub use registry::{ProviderKind, build_provider};
+pub use registry::{build_provider, ProviderKind};

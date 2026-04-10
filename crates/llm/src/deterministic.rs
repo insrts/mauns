@@ -14,7 +14,7 @@ use crate::provider::{LlmProvider, SamplingOptions};
 /// Wraps any provider and forces deterministic sampling on every call.
 pub struct DeterministicProvider {
     inner: Arc<dyn LlmProvider>,
-    opts:  SamplingOptions,
+    opts: SamplingOptions,
 }
 
 impl DeterministicProvider {

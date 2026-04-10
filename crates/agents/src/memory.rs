@@ -9,7 +9,7 @@ use mauns_core::types::SkillUsage;
 /// A single entry in the execution memory.
 #[derive(Debug, Clone)]
 pub struct MemoryEntry {
-    pub kind:    MemoryKind,
+    pub kind: MemoryKind,
     pub content: String,
 }
 
@@ -27,7 +27,7 @@ pub enum MemoryKind {
 impl std::fmt::Display for MemoryKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            MemoryKind::Decision  => write!(f, "decision"),
+            MemoryKind::Decision => write!(f, "decision"),
             MemoryKind::KeyOutput => write!(f, "key-output"),
             MemoryKind::AgentNote => write!(f, "note"),
         }
@@ -40,7 +40,7 @@ impl std::fmt::Display for MemoryKind {
 /// Provides a compact string representation for prompt injection.
 #[derive(Debug, Default)]
 pub struct ExecutionMemory {
-    entries:  Vec<MemoryEntry>,
+    entries: Vec<MemoryEntry>,
     capacity: usize,
     /// Snapshot of every skill that ran successfully (for deduplication).
     skill_log: Vec<String>,
@@ -49,25 +49,34 @@ pub struct ExecutionMemory {
 impl ExecutionMemory {
     pub fn new(capacity: usize) -> Self {
         Self {
-            entries:   Vec::new(),
-            capacity:  capacity.max(1),
+            entries: Vec::new(),
+            capacity: capacity.max(1),
             skill_log: Vec::new(),
         }
     }
 
     /// Record a decision.
     pub fn remember_decision(&mut self, content: impl Into<String>) {
-        self.push(MemoryEntry { kind: MemoryKind::Decision, content: content.into() });
+        self.push(MemoryEntry {
+            kind: MemoryKind::Decision,
+            content: content.into(),
+        });
     }
 
     /// Record a key output.
     pub fn remember_output(&mut self, content: impl Into<String>) {
-        self.push(MemoryEntry { kind: MemoryKind::KeyOutput, content: content.into() });
+        self.push(MemoryEntry {
+            kind: MemoryKind::KeyOutput,
+            content: content.into(),
+        });
     }
 
     /// Record an agent note.
     pub fn remember_note(&mut self, content: impl Into<String>) {
-        self.push(MemoryEntry { kind: MemoryKind::AgentNote, content: content.into() });
+        self.push(MemoryEntry {
+            kind: MemoryKind::AgentNote,
+            content: content.into(),
+        });
     }
 
     /// Track a successful skill invocation by name.
@@ -99,11 +108,18 @@ impl ExecutionMemory {
         if !self.skill_log.is_empty() {
             let unique: Vec<&String> = {
                 let mut seen = std::collections::HashSet::new();
-                self.skill_log.iter().filter(|s| seen.insert(s.as_str())).collect()
+                self.skill_log
+                    .iter()
+                    .filter(|s| seen.insert(s.as_str()))
+                    .collect()
             };
             parts.push(format!(
                 "Skills used so far: {}",
-                unique.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
+                unique
+                    .iter()
+                    .map(|s| s.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
             ));
         }
 
@@ -152,9 +168,9 @@ mod tests {
         let mut m = ExecutionMemory::new(10);
         let usage = SkillUsage {
             skill_name: "file_read".to_string(),
-            timestamp:  chrono::Utc::now(),
-            success:    true,
-            message:    String::new(),
+            timestamp: chrono::Utc::now(),
+            success: true,
+            message: String::new(),
         };
         m.track_skill(&usage);
         m.track_skill(&usage);

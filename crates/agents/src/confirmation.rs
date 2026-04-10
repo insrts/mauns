@@ -37,7 +37,7 @@ pub fn confirm_changes(changes: &[FileChange], dry_run: bool) -> Result<()> {
     for change in &applied {
         let op = match change.operation {
             FileOperation::Create => "CREATE",
-            FileOperation::Edit   => "EDIT",
+            FileOperation::Edit => "EDIT",
             FileOperation::Delete => "DELETE",
         };
         println!("[{op}] {}", change.path);
@@ -63,16 +63,12 @@ fn prompt_user() -> Result<()> {
     let mut out = stdout.lock();
 
     loop {
-        write!(out, "Apply these changes? (y/n): ")
-            .map_err(|e| MaunsError::Io(e))?;
-        out.flush().map_err(|e| MaunsError::Io(e))?;
+        write!(out, "Apply these changes? (y/n): ").map_err(MaunsError::Io)?;
+        out.flush().map_err(MaunsError::Io)?;
 
         let stdin = io::stdin();
         let mut line = String::new();
-        stdin
-            .lock()
-            .read_line(&mut line)
-            .map_err(|e| MaunsError::Io(e))?;
+        stdin.lock().read_line(&mut line).map_err(MaunsError::Io)?;
 
         match line.trim().to_lowercase().as_str() {
             "y" | "yes" => {

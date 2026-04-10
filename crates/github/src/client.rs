@@ -13,7 +13,7 @@ const USER_AGENT: &str = concat!("mauns/", env!("CARGO_PKG_VERSION"));
 /// Thin wrapper around `reqwest::Client` that injects authentication headers.
 #[derive(Clone)]
 pub struct GitHubClient {
-    http:  Client,
+    http: Client,
     token: String, // held in memory; never logged
 }
 
@@ -53,7 +53,10 @@ impl GitHubClient {
             .build()
             .map_err(|e| MaunsError::GitHub(format!("failed to build HTTP client: {e}")))?;
 
-        Ok(Self { http, token: token.into() })
+        Ok(Self {
+            http,
+            token: token.into(),
+        })
     }
 
     /// Perform an authenticated POST to `path` (relative to the GitHub API

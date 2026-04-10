@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use clap::Parser;
 use mauns_agents::{context_loader::load_run_context, git_orchestrator::GitConfig, Pipeline};
-use mauns_cli::{args::{Cli, Command}, output::print_report};
+use mauns_cli::{
+    args::{Cli, Command},
+    output::print_report,
+};
 use mauns_config::{load_config, schema::MaunsConfig};
 use mauns_llm::{build_provider, deterministic::DeterministicProvider, registry::ProviderKind};
 use tracing::error;
@@ -13,8 +16,11 @@ async fn main() {
     let cli = Cli::parse();
 
     let config = match load_config() {
-        Ok(c)  => c,
-        Err(e) => { eprintln!("[error] config: {e}"); std::process::exit(1); }
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("[error] config: {e}");
+            std::process::exit(1);
+        }
     };
 
     let log_level = if cli.log_level != "info" {
@@ -45,8 +51,11 @@ async fn run(cli: Cli, config: MaunsConfig) -> anyhow::Result<()> {
 
         Command::ConfigEdit => {
             match config.validate() {
-                Ok(())  => println!("[ok] configuration is valid"),
-                Err(e)  => { eprintln!("[error] invalid config: {e}"); std::process::exit(1); }
+                Ok(()) => println!("[ok] configuration is valid"),
+                Err(e) => {
+                    eprintln!("[error] invalid config: {e}");
+                    std::process::exit(1);
+                }
             }
             println!("provider        = {}", config.provider);
             println!("dry_run         = {}", config.safety.dry_run);
@@ -60,14 +69,20 @@ async fn run(cli: Cli, config: MaunsConfig) -> anyhow::Result<()> {
         }
 
         Command::Run {
-            task, dry_run, no_confirm, no_pr,
-            deterministic, vibe, test,
-            max_iterations, max_tokens,
+            task,
+            dry_run,
+            no_confirm,
+            no_pr,
+            deterministic,
+            vibe,
+            test,
+            max_iterations,
+            max_tokens,
         } => {
-            let effective_dry_run   = test || dry_run  || config.safety.dry_run;
-            let effective_confirm   = !test && !no_confirm && config.safety.confirm_before_write;
-            let effective_no_pr     = test || no_pr;
-            let effective_max_iter  = if max_iterations > 0 {
+            let effective_dry_run = test || dry_run || config.safety.dry_run;
+            let effective_confirm = !test && !no_confirm && config.safety.confirm_before_write;
+            let effective_no_pr = test || no_pr;
+            let effective_max_iter = if max_iterations > 0 {
                 max_iterations
             } else {
                 config.execution.max_iterations
@@ -81,15 +96,17 @@ async fn run(cli: Cli, config: MaunsConfig) -> anyhow::Result<()> {
 
             let kind: ProviderKind = provider_name.parse()?;
 
-            if kind == ProviderKind::Anthropic && std::env::var("CLAUDE_API_KEY").is_err() {
-                if !config.claude.api_key.is_empty() {
-                    std::env::set_var("CLAUDE_API_KEY", &config.claude.api_key);
-                }
+            if kind == ProviderKind::Anthropic
+                && std::env::var("CLAUDE_API_KEY").is_err()
+                && !config.claude.api_key.is_empty()
+            {
+                std::env::set_var("CLAUDE_API_KEY", &config.claude.api_key);
             }
-            if kind == ProviderKind::OpenAi && std::env::var("OPENAI_API_KEY").is_err() {
-                if !config.openai.api_key.is_empty() {
-                    std::env::set_var("OPENAI_API_KEY", &config.openai.api_key);
-                }
+            if kind == ProviderKind::OpenAi
+                && std::env::var("OPENAI_API_KEY").is_err()
+                && !config.openai.api_key.is_empty()
+            {
+                std::env::set_var("OPENAI_API_KEY", &config.openai.api_key);
             }
 
             let base = build_provider(&kind)?;
@@ -113,7 +130,7 @@ async fn run(cli: Cli, config: MaunsConfig) -> anyhow::Result<()> {
             );
 
             let pipeline = Pipeline::new(provider, git_cfg, vec![]);
-            let report   = pipeline.run(&task, &ctx).await?;
+            let report = pipeline.run(&task, &ctx).await?;
             print_report(&report);
         }
     }

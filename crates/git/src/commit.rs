@@ -54,19 +54,18 @@ pub fn stage_and_commit(
 
         match change.operation {
             FileOperation::Create | FileOperation::Edit => {
-                index
-                    .add_path(Path::new(&change.path))
-                    .map_err(|e| MaunsError::Git(format!(
-                        "failed to stage '{}': {e}", change.path
-                    )))?;
+                index.add_path(Path::new(&change.path)).map_err(|e| {
+                    MaunsError::Git(format!("failed to stage '{}': {e}", change.path))
+                })?;
                 info!(git = "stage", path = %change.path, op = "add");
             }
             FileOperation::Delete => {
-                index
-                    .remove_path(Path::new(&change.path))
-                    .map_err(|e| MaunsError::Git(format!(
-                        "failed to remove '{}' from index: {e}", change.path
-                    )))?;
+                index.remove_path(Path::new(&change.path)).map_err(|e| {
+                    MaunsError::Git(format!(
+                        "failed to remove '{}' from index: {e}",
+                        change.path
+                    ))
+                })?;
                 info!(git = "stage", path = %change.path, op = "remove");
             }
         }
@@ -98,12 +97,12 @@ pub fn stage_and_commit(
     // Resolve the parent commit (may not exist on an empty repo).
     let parents: Vec<git2::Commit<'_>> = match inner.head() {
         Ok(head) => {
-            let oid = head.target().ok_or_else(|| {
-                MaunsError::Git("HEAD has no target OID".to_string())
-            })?;
-            let c = inner.find_commit(oid).map_err(|e| {
-                MaunsError::Git(format!("cannot find parent commit: {e}"))
-            })?;
+            let oid = head
+                .target()
+                .ok_or_else(|| MaunsError::Git("HEAD has no target OID".to_string()))?;
+            let c = inner
+                .find_commit(oid)
+                .map_err(|e| MaunsError::Git(format!("cannot find parent commit: {e}")))?;
             vec![c]
         }
         Err(_) => vec![], // initial commit has no parent

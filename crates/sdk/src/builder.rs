@@ -9,37 +9,52 @@ use mauns_llm::{
 use mauns_skills::AgentSkill;
 
 pub struct Mauns {
-    config:        MaunsConfig,
-    extra_skills:  Vec<Arc<dyn AgentSkill>>,
+    config: MaunsConfig,
+    extra_skills: Vec<Arc<dyn AgentSkill>>,
     deterministic: bool,
-    max_tokens:    usize,
+    max_tokens: usize,
 }
 
 impl Default for Mauns {
     fn default() -> Self {
         let config = mauns_config::load_config().unwrap_or_default();
-        Self { config, extra_skills: Vec::new(), deterministic: false, max_tokens: 0 }
+        Self {
+            config,
+            extra_skills: Vec::new(),
+            deterministic: false,
+            max_tokens: 0,
+        }
     }
 }
 
 impl Mauns {
     pub fn with_config(config: MaunsConfig) -> Self {
-        Self { config, extra_skills: Vec::new(), deterministic: false, max_tokens: 0 }
+        Self {
+            config,
+            extra_skills: Vec::new(),
+            deterministic: false,
+            max_tokens: 0,
+        }
     }
     pub fn provider(mut self, p: impl Into<String>) -> Self {
-        self.config.provider = p.into(); self
+        self.config.provider = p.into();
+        self
     }
     pub fn dry_run(mut self, v: bool) -> Self {
-        self.config.safety.dry_run = v; self
+        self.config.safety.dry_run = v;
+        self
     }
     pub fn deterministic(mut self, v: bool) -> Self {
-        self.deterministic = v; self
+        self.deterministic = v;
+        self
     }
     pub fn max_tokens(mut self, v: usize) -> Self {
-        self.max_tokens = v; self
+        self.max_tokens = v;
+        self
     }
     pub fn with_skill(mut self, s: Arc<dyn AgentSkill>) -> Self {
-        self.extra_skills.push(s); self
+        self.extra_skills.push(s);
+        self
     }
 
     pub async fn run_task(&self, task: &str) -> Result<TaskReport> {
@@ -55,7 +70,7 @@ impl Mauns {
         };
 
         let git_cfg = GitConfig::new(self.config.git.create_pr, false);
-        let exec    = &self.config.execution;
+        let exec = &self.config.execution;
 
         let ctx = load_run_context(
             self.config.safety.dry_run,
@@ -73,5 +88,7 @@ impl Mauns {
             .await
     }
 
-    pub fn config(&self) -> &MaunsConfig { &self.config }
+    pub fn config(&self) -> &MaunsConfig {
+        &self.config
+    }
 }

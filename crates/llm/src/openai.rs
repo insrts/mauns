@@ -7,21 +7,21 @@ use tracing::debug;
 use crate::provider::{LlmProvider, SamplingOptions};
 
 const OPENAI_API_URL: &str = "https://api.openai.com/v1/chat/completions";
-const DEFAULT_MODEL:  &str = "gpt-4o";
+const DEFAULT_MODEL: &str = "gpt-4o";
 
 #[derive(Debug, Clone)]
 pub struct OpenAiProvider {
     api_key: String,
-    model:   String,
-    client:  Client,
+    model: String,
+    client: Client,
 }
 
 impl OpenAiProvider {
     pub fn new(api_key: impl Into<String>) -> Self {
         Self {
             api_key: api_key.into(),
-            model:   DEFAULT_MODEL.to_string(),
-            client:  Client::new(),
+            model: DEFAULT_MODEL.to_string(),
+            client: Client::new(),
         }
     }
 
@@ -34,10 +34,13 @@ impl OpenAiProvider {
         debug!(provider = "openai", model = %self.model, temperature = opts.temperature);
 
         let body = ChatRequest {
-            model:       &self.model,
-            messages:    vec![ChatMessage { role: "user", content: input }],
+            model: &self.model,
+            messages: vec![ChatMessage {
+                role: "user",
+                content: input,
+            }],
             temperature: opts.temperature,
-            top_p:       opts.top_p,
+            top_p: opts.top_p,
         };
 
         let response = self
@@ -52,7 +55,9 @@ impl OpenAiProvider {
         let status = response.status();
         if !status.is_success() {
             let text = response.text().await.unwrap_or_default();
-            return Err(MaunsError::LlmProvider(format!("openai returned {status}: {text}")));
+            return Err(MaunsError::LlmProvider(format!(
+                "openai returned {status}: {text}"
+            )));
         }
 
         let parsed: ChatResponse = response
@@ -71,15 +76,15 @@ impl OpenAiProvider {
 
 #[derive(Serialize)]
 struct ChatRequest<'a> {
-    model:       &'a str,
-    messages:    Vec<ChatMessage<'a>>,
+    model: &'a str,
+    messages: Vec<ChatMessage<'a>>,
     temperature: f32,
-    top_p:       f32,
+    top_p: f32,
 }
 
 #[derive(Serialize)]
 struct ChatMessage<'a> {
-    role:    &'a str,
+    role: &'a str,
     content: &'a str,
 }
 
@@ -104,9 +109,15 @@ impl LlmProvider for OpenAiProvider {
         self.call(input, &SamplingOptions::standard()).await
     }
 
-    async fn send_prompt_with_options(&self, input: &str, opts: &SamplingOptions) -> Result<String> {
+    async fn send_prompt_with_options(
+        &self,
+        input: &str,
+        opts: &SamplingOptions,
+    ) -> Result<String> {
         self.call(input, opts).await
     }
 
-    fn name(&self) -> &str { "openai" }
+    fn name(&self) -> &str {
+        "openai"
+    }
 }

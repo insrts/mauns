@@ -8,22 +8,22 @@ use crate::provider::{LlmProvider, SamplingOptions};
 
 const ANTHROPIC_API_URL: &str = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION: &str = "2023-06-01";
-const DEFAULT_MODEL:     &str = "claude-sonnet-4-20250514";
-const MAX_TOKENS:        u32  = 4096;
+const DEFAULT_MODEL: &str = "claude-sonnet-4-20250514";
+const MAX_TOKENS: u32 = 4096;
 
 #[derive(Debug, Clone)]
 pub struct AnthropicProvider {
     api_key: String,
-    model:   String,
-    client:  Client,
+    model: String,
+    client: Client,
 }
 
 impl AnthropicProvider {
     pub fn new(api_key: impl Into<String>) -> Self {
         Self {
             api_key: api_key.into(),
-            model:   DEFAULT_MODEL.to_string(),
-            client:  Client::new(),
+            model: DEFAULT_MODEL.to_string(),
+            client: Client::new(),
         }
     }
 
@@ -36,11 +36,14 @@ impl AnthropicProvider {
         debug!(provider = "anthropic", model = %self.model, temperature = opts.temperature);
 
         let body = MessagesRequest {
-            model:       &self.model,
-            max_tokens:  MAX_TOKENS,
+            model: &self.model,
+            max_tokens: MAX_TOKENS,
             temperature: opts.temperature,
-            top_p:       opts.top_p,
-            messages:    vec![Message { role: "user", content: input }],
+            top_p: opts.top_p,
+            messages: vec![Message {
+                role: "user",
+                content: input,
+            }],
         };
 
         let response = self
@@ -56,7 +59,9 @@ impl AnthropicProvider {
         let status = response.status();
         if !status.is_success() {
             let text = response.text().await.unwrap_or_default();
-            return Err(MaunsError::LlmProvider(format!("anthropic returned {status}: {text}")));
+            return Err(MaunsError::LlmProvider(format!(
+                "anthropic returned {status}: {text}"
+            )));
         }
 
         let parsed: MessagesResponse = response
@@ -75,16 +80,16 @@ impl AnthropicProvider {
 
 #[derive(Serialize)]
 struct MessagesRequest<'a> {
-    model:       &'a str,
-    max_tokens:  u32,
+    model: &'a str,
+    max_tokens: u32,
     temperature: f32,
-    top_p:       f32,
-    messages:    Vec<Message<'a>>,
+    top_p: f32,
+    messages: Vec<Message<'a>>,
 }
 
 #[derive(Serialize)]
 struct Message<'a> {
-    role:    &'a str,
+    role: &'a str,
     content: &'a str,
 }
 
@@ -97,7 +102,7 @@ struct MessagesResponse {
 struct ContentBlock {
     #[serde(rename = "type")]
     block_type: String,
-    text:       Option<String>,
+    text: Option<String>,
 }
 
 #[async_trait]
@@ -106,9 +111,15 @@ impl LlmProvider for AnthropicProvider {
         self.call(input, &SamplingOptions::standard()).await
     }
 
-    async fn send_prompt_with_options(&self, input: &str, opts: &SamplingOptions) -> Result<String> {
+    async fn send_prompt_with_options(
+        &self,
+        input: &str,
+        opts: &SamplingOptions,
+    ) -> Result<String> {
         self.call(input, opts).await
     }
 
-    fn name(&self) -> &str { "anthropic" }
+    fn name(&self) -> &str {
+        "anthropic"
+    }
 }
