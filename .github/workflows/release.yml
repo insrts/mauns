@@ -5,10 +5,14 @@ on:
     tags:
       - "v*.*.*"
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   CARGO_TERM_COLOR: always
   REGISTRY: ghcr.io
-  IMAGE_NAME: mauns/mauns
+  IMAGE_NAME: ${{ github.repository }}
 
 permissions:
   contents: write
@@ -16,9 +20,6 @@ permissions:
   id-token: write
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # Build native binaries for all target platforms
-  # ---------------------------------------------------------------------------
   build-binaries:
     name: Build — ${{ matrix.target }}
     runs-on: ${{ matrix.runner }}
@@ -26,39 +27,32 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux x86_64
+          # Linux x64
           - target: x86_64-unknown-linux-gnu
             runner: ubuntu-22.04
             archive: mauns-linux-x64.tar.gz
             binary: mauns
 
-          # Linux ARM64 (cross-compiled)
+          # Linux ARM64 (cross)
           - target: aarch64-unknown-linux-gnu
             runner: ubuntu-22.04
             archive: mauns-linux-arm64.tar.gz
             binary: mauns
             cross: true
 
-          # Linux ARM64 native (self-hosted, optional — skipped if not available)
-          # Uncomment if you add an arm64 runner to the repo.
-          # - target: aarch64-unknown-linux-gnu
-          #   runner: [self-hosted, linux, arm64]
-          #   archive: mauns-linux-arm64.tar.gz
-          #   binary: mauns
-
-          # macOS x86_64
+          # macOS Intel
           - target: x86_64-apple-darwin
             runner: macos-13
             archive: mauns-macos-x64.tar.gz
             binary: mauns
 
-          # macOS Apple Silicon
+          # macOS ARM
           - target: aarch64-apple-darwin
             runner: macos-14
             archive: mauns-macos-arm64.tar.gz
             binary: mauns
 
-          # Windows x86_64
+          # Windows
           - target: x86_64-pc-windows-msvc
             runner: windows-latest
             archive: mauns-windows-x64.zip
@@ -68,10 +62,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Rust stable
+      - name: Validate version
+        run: |
+          if ! [[ "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "Invalid version tag"
+            exit 1
+          fi
+
+      - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+
+      - name: Ensure target installed
+        run: rustup target add ${{ matrix.target }}
 
       - name: Cache Cargo
         uses: actions/cache@v4
@@ -81,54 +85,60 @@ jobs:
             ~/.cargo/git
             target/
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-cargo-
 
-      # Install cross for Linux ARM64 cross-compilation
       - name: Install cross
         if: matrix.cross == true
-        run: cargo install cross --git https://github.com/cross-rs/cross
+        run: cargo install cross
 
-      - name: Install system dependencies (Linux)
-        if: runner.os == 'Linux' && matrix.cross != true
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libssl-dev pkg-config
+          sudo apt-get install -y libssl-dev pkg-config musl-tools
 
-      # Build with cross for cross-compiled targets
-      - name: Build binary (cross)
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install openssl
+
+      - name: Build (cross)
         if: matrix.cross == true
         run: cross build --release --bin mauns --target ${{ matrix.target }}
 
-      # Build natively for all other targets
-      - name: Build binary (native)
+      - name: Build (native)
         if: matrix.cross != true
         run: cargo build --release --bin mauns --target ${{ matrix.target }}
 
-      # ---------------------------------------------------------------------------
-      # Package archives
-      # ---------------------------------------------------------------------------
-
-      - name: Package (Linux / macOS)
+      - name: Strip binary
         if: runner.os != 'Windows'
-        shell: bash
+        run: strip target/${{ matrix.target }}/release/${{ matrix.binary }} || true
+
+      # ---------------- Packaging ----------------
+
+      - name: Package (Linux/macOS)
+        if: runner.os != 'Windows'
         run: |
-          VERSION=${GITHUB_REF_NAME}
-          BINARY=target/${{ matrix.target }}/release/${{ matrix.binary }}
-          cp "$BINARY" mauns
+          cp target/${{ matrix.target }}/release/${{ matrix.binary }} mauns
           tar -czf "${{ matrix.archive }}" mauns README.md LICENSE
-          sha256sum "${{ matrix.archive }}" > "${{ matrix.archive }}.sha256"
+          if command -v sha256sum &> /dev/null; then
+            sha256sum "${{ matrix.archive }}" > "${{ matrix.archive }}.sha256"
+          else
+            shasum -a 256 "${{ matrix.archive }}" > "${{ matrix.archive }}.sha256"
+          fi
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $VERSION = $env:GITHUB_REF_NAME
-          $BINARY = "target\${{ matrix.target }}\release\${{ matrix.binary }}"
-          Copy-Item $BINARY mauns.exe
+          Copy-Item target\${{ matrix.target }}\release\${{ matrix.binary }} mauns.exe
           Compress-Archive -Path mauns.exe, README.md, LICENSE -DestinationPath "${{ matrix.archive }}"
           $hash = (Get-FileHash "${{ matrix.archive }}" -Algorithm SHA256).Hash.ToLower()
-          "$hash  ${{ matrix.archive }}" | Out-File -Encoding ascii "${{ matrix.archive }}.sha256"
+          "$hash  ${{ matrix.archive }}" | Out-File "${{ matrix.archive }}.sha256"
+
+      - name: Verify checksum
+        if: runner.os != 'Windows'
+        run: sha256sum -c *.sha256 || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -137,202 +147,111 @@ jobs:
           path: |
             ${{ matrix.archive }}
             ${{ matrix.archive }}.sha256
-          retention-days: 1
 
-  # ---------------------------------------------------------------------------
-  # Publish to GitHub Releases
-  # ---------------------------------------------------------------------------
   github-release:
     name: GitHub Release
     needs: build-binaries
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           path: artifacts/
           merge-multiple: true
 
-      - name: Extract version
-        id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-
-      - name: Generate release notes from CHANGELOG
-        id: notes
+      - name: Generate notes
         run: |
-          # Extract the section for this version from CHANGELOG.md
           VERSION=${GITHUB_REF_NAME}
-          NOTES=$(awk "/^## \[${VERSION#v}\]/{found=1; next} found && /^## /{exit} found{print}" CHANGELOG.md)
-          if [ -z "$NOTES" ]; then
-            NOTES="See [CHANGELOG.md](./CHANGELOG.md) for details."
-          fi
-          # Write to file to avoid quoting issues with multiline strings
-          echo "$NOTES" > release_notes.md
+          awk "/^## \[${VERSION#v}\]/{flag=1;next}/^## /{flag=0}flag" CHANGELOG.md > notes.md || true
 
-      - name: Create GitHub Release
+      - name: Release
         uses: softprops/action-gh-release@v2
         with:
           name: Mauns ${{ github.ref_name }}
-          body_path: release_notes.md
-          draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          files: |
-            artifacts/**/*.tar.gz
-            artifacts/**/*.zip
-            artifacts/**/*.sha256
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          body_path: notes.md
+          files: artifacts/**
 
-  # ---------------------------------------------------------------------------
-  # Publish to npm
-  # ---------------------------------------------------------------------------
   npm-publish:
-    name: Publish to npm
+    name: npm
     needs: github-release
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          registry-url: "https://registry.npmjs.org"
+          registry-url: https://registry.npmjs.org
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           path: artifacts/
           merge-multiple: true
 
-      - name: Stage binaries for npm package
+      - name: Prepare binaries
         run: |
           mkdir -p bin
-          # Copy each platform binary into the bin/ directory with a platform suffix
-          # so the postinstall script can select the right one.
-          for archive in artifacts/*.tar.gz; do
-            name=$(basename "$archive" .tar.gz)
-            tar -xzf "$archive" mauns
-            case "$name" in
-              *linux-x64*)   mv mauns bin/mauns-linux-x64 ;;
-              *linux-arm64*) mv mauns bin/mauns-linux-arm64 ;;
-              *macos-x64*)   mv mauns bin/mauns-macos-x64 ;;
-              *macos-arm64*) mv mauns bin/mauns-macos-arm64 ;;
-            esac
+          for f in artifacts/*.tar.gz; do
+            tar -xzf "$f" mauns
+            mv mauns bin/$(basename "$f" .tar.gz)
           done
-          for archive in artifacts/*.zip; do
-            name=$(basename "$archive" .zip)
-            unzip -o "$archive" "mauns.exe" -d .
-            case "$name" in
-              *windows-x64*) mv mauns.exe bin/mauns-windows-x64.exe ;;
-            esac
-          done
-          chmod +x bin/mauns-* 2>/dev/null || true
 
-      - name: Set npm version from tag
-        run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          npm version "$VERSION" --no-git-tag-version
+      - name: Check package
+        run: npm pack --dry-run
+
+      - name: Set version
+        run: npm version ${GITHUB_REF_NAME#v} --no-git-tag-version
 
       - name: Publish
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  # ---------------------------------------------------------------------------
-  # Build and push Docker image to GHCR
-  # ---------------------------------------------------------------------------
-  docker-publish:
-    name: Publish Docker image
+  docker:
+    name: Docker
     needs: github-release
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest
-
-      - name: Set up QEMU (multi-arch)
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
           push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ghcr.io/${{ github.repository }}:latest
 
-  # ---------------------------------------------------------------------------
-  # Package and publish Helm chart to GitHub Pages
-  # ---------------------------------------------------------------------------
-  helm-publish:
-    name: Publish Helm chart
+  helm:
+    name: Helm
     needs: github-release
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      - name: Install Helm
-        uses: azure/setup-helm@v4
+      - uses: azure/setup-helm@v4
 
-      - name: Set chart version from tag
+      - name: Package
+        run: helm package helm/mauns --destination charts/
+
+      - name: Deploy
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          sed -i "s/^version:.*/version: ${VERSION}/" helm/mauns/Chart.yaml
-          sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" helm/mauns/Chart.yaml
-
-      - name: Package chart
-        run: helm package helm/mauns --destination charts-output/
-
-      - name: Checkout gh-pages branch
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: gh-pages
-
-      - name: Update Helm repo index
-        run: |
-          cp charts-output/*.tgz gh-pages/
-          helm repo index gh-pages/ --url https://mauns.github.io/mauns
-
-      - name: Commit and push Helm chart
-        run: |
-          cd gh-pages
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin gh-pages || true
+          git checkout gh-pages || git checkout -b gh-pages
+          cp charts/*.tgz .
+          helm repo index . --url https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          git config user.name github-actions
+          git config user.email actions@github.com
           git add .
-          git commit -m "chore: release Helm chart ${GITHUB_REF_NAME}" || echo "nothing to commit"
-          git push
+          git commit -m "release"
+          git push origin gh-pages
