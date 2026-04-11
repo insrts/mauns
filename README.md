@@ -56,7 +56,7 @@ export OPENAI_API_KEY=sk-...
 Initialize a config file:
 
 ```sh
-mauns config init
+mauns config-init
 ```
 
 Run a task:
