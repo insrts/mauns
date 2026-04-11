@@ -29,27 +29,32 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Linux x64
           - target: x86_64-unknown-linux-gnu
             runner: ubuntu-22.04
             archive: mauns-linux-x64.tar.gz
             binary: mauns
 
+          # Linux ARM64 (cross)
           - target: aarch64-unknown-linux-gnu
             runner: ubuntu-22.04
             archive: mauns-linux-arm64.tar.gz
             binary: mauns
             cross: true
 
+          # macOS Intel
           - target: x86_64-apple-darwin
-            runner: macos-13
+            runner: macos-latest
             archive: mauns-macos-x64.tar.gz
             binary: mauns
 
+          # macOS ARM
           - target: aarch64-apple-darwin
-            runner: macos-14
+            runner: macos-latest
             archive: mauns-macos-arm64.tar.gz
             binary: mauns
 
+          # Windows
           - target: x86_64-pc-windows-msvc
             runner: windows-latest
             archive: mauns-windows-x64.zip
@@ -59,9 +64,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ✅ FIX: force bash so regex works everywhere
       - name: Validate version tag
+        shell: bash
         run: |
-          if ! [[ "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if ! [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Invalid version tag"
             exit 1
           fi
@@ -159,8 +166,10 @@ jobs:
           merge-multiple: true
 
       - name: Generate release notes
+        shell: bash
         run: |
           VERSION=${GITHUB_REF_NAME}
+
           awk "/^## \[${VERSION#v}\]/{flag=1;next}/^## /{flag=0}flag" CHANGELOG.md > notes.md || true
 
           if [ ! -s notes.md ]; then
@@ -193,6 +202,7 @@ jobs:
           merge-multiple: true
 
       - name: Prepare binaries
+        shell: bash
         run: |
           mkdir -p bin
           shopt -s nullglob
@@ -253,6 +263,7 @@ jobs:
           helm package helm/mauns --destination charts/
 
       - name: Publish Helm repo
+        shell: bash
         run: |
           git fetch origin gh-pages || true
           git checkout gh-pages || git checkout -b gh-pages
