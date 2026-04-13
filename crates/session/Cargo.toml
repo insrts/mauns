@@ -1,0 +1,19 @@
+[package]
+name    = "mauns-session"
+version = "0.1.1"
+edition = "2021"
+
+[dependencies]
+mauns-core    = { path = "../core" }
+mauns-llm     = { path = "../llm" }
+mauns-agents  = { path = "../agents" }
+mauns-config  = { path = "../config" }
+mauns-skills  = { path = "../skills" }
+mauns-filesystem = { path = "../filesystem" }
+tokio         = { workspace = true }
+tracing       = { workspace = true }
+serde         = { workspace = true }
+serde_json    = { workspace = true }
+chrono        = { workspace = true }
+crossterm     = { workspace = true }
+anyhow        = { workspace = true }
