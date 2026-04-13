@@ -71,11 +71,11 @@ You will see a session screen similar to this:
 
 ```
  ╭────────────────────────────────────────╮
- │  >_ Mauns  (v0.1.1)                    │
- │                                        │
- │  provider: anthropic  /models to change│
- │  model:    (default)                   │
- │  directory: ~/projects/myapp           │
+ │  >_ Mauns  (v0.1.1)                           │
+ │                                               │
+ │  provider: anthropic  /models to change.      │
+ │  model:    (default)                          │
+ │  directory: ~/projects/myapp                  │
  ╰────────────────────────────────────────╯
 
   Tip: Type a task and press Enter to run it.
