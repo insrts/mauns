@@ -26,7 +26,7 @@ use crate::{
     commands::{handle_command, CommandResult},
     display::{
         print_dim, print_error, print_info, print_running, print_section,
-        print_splash, print_step, print_step_done, print_step_retry, print_success,
+        print_splash, print_step_done, print_step_retry, print_success,
         print_warning,
     },
     history::CommandHistory,
