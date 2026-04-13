@@ -2,7 +2,6 @@
 //!
 //! All commands start with `/`.  Unknown commands show a help hint.
 
-use mauns_config::schema::MaunsConfig;
 use mauns_core::types::FileOperation;
 use mauns_llm::{models_for_provider, ProviderKind};
 
