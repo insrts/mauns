@@ -26,7 +26,6 @@ pub fn load_config() -> Result<MaunsConfig> {
         merge_toml(&mut config, &text)?;
     }
 
-    apply_env_overrides(&mut config);
     Ok(config)
 }
 
@@ -34,28 +33,29 @@ fn merge_toml(base: &mut MaunsConfig, text: &str) -> Result<()> {
     let parsed: MaunsConfig =
         toml::from_str(text).map_err(|e| MaunsError::TomlParse(e.to_string()))?;
 
-    if !parsed.provider.is_empty()          { base.provider = parsed.provider; }
-    if !parsed.model.is_empty()             { base.model    = parsed.model; }
-    if !parsed.openai.api_key.is_empty()    { base.openai.api_key = parsed.openai.api_key; }
-    if !parsed.claude.api_key.is_empty()    { base.claude.api_key = parsed.claude.api_key; }
-    if !parsed.groq.api_key.is_empty()      { base.groq.api_key   = parsed.groq.api_key; }
-    base.safety    = parsed.safety;
-    base.logging   = parsed.logging;
-    base.git       = parsed.git;
+    if !parsed.provider.is_empty() {
+        base.provider = parsed.provider;
+    }
+    if !parsed.model.is_empty() {
+        base.model = parsed.model;
+    }
+    if !parsed.openai.api_key.is_empty() {
+        base.openai.api_key = parsed.openai.api_key;
+    }
+    if !parsed.claude.api_key.is_empty() {
+        base.claude.api_key = parsed.claude.api_key;
+    }
+    if !parsed.groq.api_key.is_empty() {
+        base.groq.api_key = parsed.groq.api_key;
+    }
+    if !parsed.git.github_token.is_empty() {
+        base.git.github_token = parsed.git.github_token;
+    }
+    base.safety = parsed.safety;
+    base.logging = parsed.logging;
+    base.git.create_pr = parsed.git.create_pr;
     base.execution = parsed.execution;
     Ok(())
-}
-
-fn apply_env_overrides(cfg: &mut MaunsConfig) {
-    if let Ok(v) = std::env::var("MAUNS_PROVIDER")  { cfg.provider = v; }
-    if let Ok(v) = std::env::var("MAUNS_MODEL")      { cfg.model    = v; }
-    if let Ok(v) = std::env::var("OPENAI_API_KEY")   { cfg.openai.api_key = v; }
-    if let Ok(v) = std::env::var("CLAUDE_API_KEY")   { cfg.claude.api_key = v; }
-    if let Ok(v) = std::env::var("GROQ_API_KEY")     { cfg.groq.api_key   = v; }
-    if let Ok(v) = std::env::var("MAUNS_DRY_RUN")    {
-        cfg.safety.dry_run = matches!(v.to_lowercase().as_str(), "true" | "1");
-    }
-    if let Ok(v) = std::env::var("MAUNS_LOG")        { cfg.logging.level = v; }
 }
 
 fn home_dir() -> Option<PathBuf> {

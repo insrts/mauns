@@ -31,10 +31,7 @@ pub fn print_splash(state: &SessionState) {
     let _ = out.execute(SetForegroundColor(Color::White));
     println!(" │                                        │");
 
-    let provider_line = format!(
-        " │  provider: {:<8}  /models to change  │",
-        state.provider
-    );
+    let provider_line = format!(" │  provider: {:<8}  /models to change  │", state.provider);
     println!("{}", provider_line);
 
     let model_display = if state.model.is_empty() {
@@ -48,7 +45,11 @@ pub fn print_splash(state: &SessionState) {
     let cwd = std::env::current_dir()
         .map(|p| {
             let s = p.display().to_string();
-            if s.len() > 28 { format!("...{}", &s[s.len()-25..]) } else { s }
+            if s.len() > 28 {
+                format!("...{}", &s[s.len() - 25..])
+            } else {
+                s
+            }
         })
         .unwrap_or_else(|_| ".".to_string());
     let dir_line = format!(" │  directory: {:<27}│", cwd);
@@ -74,8 +75,8 @@ pub fn print_prompt(state: &SessionState) {
     let mut out = stdout();
     let mode_indicator = match state.mode {
         SessionMode::DryRun => " [dry-run]",
-        SessionMode::Vibe   => " [vibe]",
-        _                   => "",
+        SessionMode::Vibe => " [vibe]",
+        _ => "",
     };
 
     let _ = out.execute(SetForegroundColor(Color::Green));
