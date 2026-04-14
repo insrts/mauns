@@ -10,13 +10,8 @@ use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() {
-    // Logging is off by default in session mode to keep the UI clean.
-    // Set MAUNS_LOG=debug to see tracing output.
-    let log_level = std::env::var("MAUNS_LOG").unwrap_or_else(|_| "off".to_string());
-    init_logging(&log_level);
-
     let config = match load_config() {
-        Ok(c)  => c,
+        Ok(c) => c,
         Err(e) => {
             eprintln!("[mauns] Configuration error: {e}");
             eprintln!("[mauns] Run: mauns config-init  to create a default mauns.toml");
@@ -57,28 +52,26 @@ async fn main() {
         }
     }
 
+    // Logging is off by default in session mode to keep the UI clean.
+    init_logging(&config.logging.level);
+
     // No arguments → enter agent session mode.
-    let state  = SessionState::new(config);
+    let state = SessionState::new(config);
     let runner = SessionRunner::new(state);
     runner.run().await;
 }
 
 fn print_help() {
-    println!("Mauns v{} — autonomous AI agent session", env!("CARGO_PKG_VERSION"));
+    println!(
+        "Mauns v{} — autonomous AI agent session",
+        env!("CARGO_PKG_VERSION")
+    );
     println!();
     println!("USAGE:");
     println!("  mauns              Enter the interactive agent session");
     println!("  mauns config-init  Create a default mauns.toml in the current directory");
     println!("  mauns --version    Print the version");
     println!("  mauns --help       Show this help message");
-    println!();
-    println!("ENVIRONMENT VARIABLES:");
-    println!("  CLAUDE_API_KEY     Anthropic API key");
-    println!("  OPENAI_API_KEY     OpenAI API key");
-    println!("  GROQ_API_KEY       Groq API key");
-    println!("  MAUNS_PROVIDER     Default provider (anthropic | openai | groq)");
-    println!("  MAUNS_MODEL        Default model override");
-    println!("  MAUNS_LOG          Log level (off | error | warn | info | debug)");
     println!();
     println!("INSIDE THE SESSION:");
     println!("  Type a task and press Enter to run it.");

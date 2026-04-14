@@ -8,26 +8,21 @@ use std::{
     sync::Arc,
 };
 
-use mauns_agents::{
-    context_loader::load_run_context,
-    git_orchestrator::GitConfig,
-    Pipeline,
-};
+use mauns_agents::{context_loader::load_run_context, git_orchestrator::GitConfig, Pipeline};
 use mauns_core::{
     error::MaunsError,
     types::{Plan, ProgressReporter},
 };
 use mauns_llm::{
-    build_provider_with_model, deterministic::DeterministicProvider,
-    provider::LlmProvider, ProviderKind,
+    build_provider_with_model, deterministic::DeterministicProvider, provider::LlmProvider,
+    ProviderKind,
 };
 
 use crate::{
     commands::{handle_command, CommandResult},
     display::{
-        print_dim, print_error, print_info, print_running, print_section,
-        print_splash, print_step_done, print_step_retry, print_success,
-        print_warning,
+        print_dim, print_error, print_info, print_running, print_section, print_splash,
+        print_step_done, print_step_retry, print_success, print_warning,
     },
     history::CommandHistory,
     state::{SessionMode, SessionState},
@@ -35,7 +30,7 @@ use crate::{
 
 /// Drives the full interactive agent session.
 pub struct SessionRunner {
-    state:   SessionState,
+    state: SessionState,
     history: CommandHistory,
 }
 
@@ -58,7 +53,7 @@ impl SessionRunner {
 
         print_splash(&self.state);
 
-        let stdin  = io::stdin();
+        let stdin = io::stdin();
         let stdout = io::stdout();
 
         loop {
@@ -97,9 +92,9 @@ impl SessionRunner {
             if input.starts_with('/') {
                 // Slash command.
                 match handle_command(&input, &mut self.state, &self.history) {
-                    CommandResult::Exit             => break,
-                    CommandResult::Continue         => {}
-                    CommandResult::ProviderChanged  => {
+                    CommandResult::Exit => break,
+                    CommandResult::Continue => {}
+                    CommandResult::ProviderChanged => {
                         // Rebuild provider with new selection on next task run.
                         print_dim(&format!(
                             "Provider changed to '{}'. New model will apply on the next task.",
@@ -119,12 +114,9 @@ impl SessionRunner {
     // -----------------------------------------------------------------------
 
     async fn run_task(&mut self, task: String) {
-        // Promote API keys from config into env (LLM registry reads env).
-        self.promote_api_keys();
-
         // Build the provider.
         let kind: ProviderKind = match self.state.provider.parse() {
-            Ok(k)  => k,
+            Ok(k) => k,
             Err(_) => {
                 print_error(&format!(
                     "Unknown provider '{}'. Use /models to switch.",
@@ -135,8 +127,8 @@ impl SessionRunner {
         };
 
         let model = self.state.effective_model().map(|s| s.to_string());
-        let base = match build_provider_with_model(&kind, model.as_deref()) {
-            Ok(p)  => p,
+        let base = match build_provider_with_model(&kind, &self.state.config, model.as_deref()) {
+            Ok(p) => p,
             Err(e) => {
                 print_error(&format!("Provider error: {e}"));
                 print_dim("Set the API key with: export GROQ_API_KEY=... (or CLAUDE_API_KEY / OPENAI_API_KEY)");
@@ -163,7 +155,8 @@ impl SessionRunner {
             0, // no token limit in session mode
         );
 
-        let git_cfg = GitConfig::new(self.state.config.git.create_pr, false);
+        let git_cfg = GitConfig::new(self.state.config.git.create_pr, false)
+            .with_token(self.state.config.git.github_token.clone());
 
         // Progress reporter: prints live step updates to the terminal.
         let reporter = SessionProgressReporter;
@@ -179,7 +172,7 @@ impl SessionRunner {
         print_running(&task);
 
         let pipeline = Pipeline::new(provider, git_cfg, vec![]);
-        let result   = pipeline.run(&task, &ctx, Some(&reporter)).await;
+        let result = pipeline.run(&task, &ctx, Some(&reporter)).await;
 
         // Restore interactive mode (unless user set dry-run/vibe persistently).
         if self.state.mode == SessionMode::Running {
@@ -213,12 +206,13 @@ impl SessionRunner {
                 }
 
                 // File changes summary.
-                let applied: Vec<_> = report.change_log.iter()
-                    .filter(|c| c.applied)
-                    .collect();
+                let applied: Vec<_> = report.change_log.iter().filter(|c| c.applied).collect();
                 if !applied.is_empty() {
                     println!();
-                    print_info(&format!("{} file(s) changed. Use /diff to view.", applied.len()));
+                    print_info(&format!(
+                        "{} file(s) changed. Use /diff to view.",
+                        applied.len()
+                    ));
                 } else if self.state.is_dry_run() {
                     print_dim("Dry-run: no files written.");
                 }
@@ -274,23 +268,6 @@ impl SessionRunner {
         }
 
         println!();
-    }
-
-    // -----------------------------------------------------------------------
-    // Key promotion
-    // -----------------------------------------------------------------------
-
-    fn promote_api_keys(&self) {
-        let cfg = &self.state.config;
-        if std::env::var("CLAUDE_API_KEY").is_err() && !cfg.claude.api_key.is_empty() {
-            std::env::set_var("CLAUDE_API_KEY", &cfg.claude.api_key);
-        }
-        if std::env::var("OPENAI_API_KEY").is_err() && !cfg.openai.api_key.is_empty() {
-            std::env::set_var("OPENAI_API_KEY", &cfg.openai.api_key);
-        }
-        if std::env::var("GROQ_API_KEY").is_err() && !cfg.groq.api_key.is_empty() {
-            std::env::set_var("GROQ_API_KEY", &cfg.groq.api_key);
-        }
     }
 }
 

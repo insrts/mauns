@@ -27,25 +27,6 @@ impl std::fmt::Debug for GitHubClient {
 }
 
 impl GitHubClient {
-    /// Construct a client from `GITHUB_TOKEN` environment variable.
-    pub fn from_env() -> Result<Self> {
-        let token = std::env::var("GITHUB_TOKEN").map_err(|_| {
-            MaunsError::GitHub(
-                "GITHUB_TOKEN environment variable is not set; \
-                 it is required for GitHub operations"
-                    .to_string(),
-            )
-        })?;
-
-        if token.trim().is_empty() {
-            return Err(MaunsError::GitHub(
-                "GITHUB_TOKEN is set but empty".to_string(),
-            ));
-        }
-
-        Self::new(token)
-    }
-
     /// Construct a client from a token string.
     pub fn new(token: impl Into<String>) -> Result<Self> {
         let http = Client::builder()

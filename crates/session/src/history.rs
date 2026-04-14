@@ -3,18 +3,19 @@
 use std::path::PathBuf;
 
 const HISTORY_FILE: &str = ".mauns_history";
-const MAX_ENTRIES:  usize = 500;
+const MAX_ENTRIES: usize = 500;
 
 /// Loads history from disk, appends new entries, and saves back.
 pub struct CommandHistory {
     entries: Vec<String>,
-    path:    Option<PathBuf>,
+    path: Option<PathBuf>,
 }
 
 impl CommandHistory {
     pub fn load() -> Self {
         let path = history_path();
-        let entries = path.as_ref()
+        let entries = path
+            .as_ref()
             .and_then(|p| std::fs::read_to_string(p).ok())
             .map(|s| {
                 s.lines()
@@ -29,9 +30,13 @@ impl CommandHistory {
 
     pub fn push(&mut self, entry: impl Into<String>) {
         let e = entry.into();
-        if e.trim().is_empty() { return; }
+        if e.trim().is_empty() {
+            return;
+        }
         // Deduplicate consecutive identical entries.
-        if self.entries.last().map(|l| l == &e).unwrap_or(false) { return; }
+        if self.entries.last().map(|l| l == &e).unwrap_or(false) {
+            return;
+        }
         self.entries.push(e);
         if self.entries.len() > MAX_ENTRIES {
             self.entries.drain(0..self.entries.len() - MAX_ENTRIES);

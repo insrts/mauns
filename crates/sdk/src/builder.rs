@@ -61,7 +61,7 @@ impl Mauns {
         self.config.validate()?;
 
         let kind: ProviderKind = self.config.provider.parse()?;
-        let base = build_provider(&kind)?;
+        let base = build_provider(&kind, &self.config)?;
 
         let provider: Arc<dyn LlmProvider> = if self.deterministic {
             Arc::new(DeterministicProvider::new(base))
@@ -69,7 +69,8 @@ impl Mauns {
             base
         };
 
-        let git_cfg = GitConfig::new(self.config.git.create_pr, false);
+        let git_cfg = GitConfig::new(self.config.git.create_pr, false)
+            .with_token(self.config.git.github_token.clone());
         let exec = &self.config.execution;
 
         let ctx = load_run_context(

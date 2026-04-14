@@ -10,32 +10,35 @@ use tracing::debug;
 
 use crate::provider::{LlmProvider, SamplingOptions};
 
-const GROQ_API_URL:   &str = "https://api.groq.com/openai/v1/chat/completions";
-const DEFAULT_MODEL:  &str = "llama-3.3-70b-versatile";
+const GROQ_API_URL: &str = "https://api.groq.com/openai/v1/chat/completions";
+const DEFAULT_MODEL: &str = "llama-3.3-70b-versatile";
 
 /// All Groq models available for selection in the session.
 pub const GROQ_MODELS: &[(&str, &str)] = &[
-    ("llama-3.3-70b-versatile",        "Llama 3.3 70B — balanced, fast"),
-    ("llama-3.1-70b-versatile",        "Llama 3.1 70B — stable"),
-    ("llama-3.1-8b-instant",           "Llama 3.1 8B — very fast"),
-    ("mixtral-8x7b-32768",             "Mixtral 8x7B — 32k context"),
-    ("gemma2-9b-it",                   "Gemma 2 9B — compact"),
-    ("llama3-groq-70b-8192-tool-use-preview", "Llama 3 70B — tool use"),
+    ("llama-3.3-70b-versatile", "Llama 3.3 70B — balanced, fast"),
+    ("llama-3.1-70b-versatile", "Llama 3.1 70B — stable"),
+    ("llama-3.1-8b-instant", "Llama 3.1 8B — very fast"),
+    ("mixtral-8x7b-32768", "Mixtral 8x7B — 32k context"),
+    ("gemma2-9b-it", "Gemma 2 9B — compact"),
+    (
+        "llama3-groq-70b-8192-tool-use-preview",
+        "Llama 3 70B — tool use",
+    ),
 ];
 
 #[derive(Debug, Clone)]
 pub struct GroqProvider {
     api_key: String,
-    model:   String,
-    client:  Client,
+    model: String,
+    client: Client,
 }
 
 impl GroqProvider {
     pub fn new(api_key: impl Into<String>) -> Self {
         Self {
             api_key: api_key.into(),
-            model:   DEFAULT_MODEL.to_string(),
-            client:  Client::new(),
+            model: DEFAULT_MODEL.to_string(),
+            client: Client::new(),
         }
     }
 
@@ -52,10 +55,13 @@ impl GroqProvider {
         debug!(provider = "groq", model = %self.model, temperature = opts.temperature);
 
         let body = ChatRequest {
-            model:       &self.model,
-            messages:    vec![ChatMessage { role: "user", content: input }],
+            model: &self.model,
+            messages: vec![ChatMessage {
+                role: "user",
+                content: input,
+            }],
             temperature: opts.temperature,
-            top_p:       opts.top_p,
+            top_p: opts.top_p,
         };
 
         let response = self
@@ -93,24 +99,30 @@ impl LlmProvider for GroqProvider {
         self.call(input, &SamplingOptions::standard()).await
     }
 
-    async fn send_prompt_with_options(&self, input: &str, opts: &SamplingOptions) -> Result<String> {
+    async fn send_prompt_with_options(
+        &self,
+        input: &str,
+        opts: &SamplingOptions,
+    ) -> Result<String> {
         self.call(input, opts).await
     }
 
-    fn name(&self) -> &str { "groq" }
+    fn name(&self) -> &str {
+        "groq"
+    }
 }
 
 #[derive(Serialize)]
 struct ChatRequest<'a> {
-    model:       &'a str,
-    messages:    Vec<ChatMessage<'a>>,
+    model: &'a str,
+    messages: Vec<ChatMessage<'a>>,
     temperature: f32,
-    top_p:       f32,
+    top_p: f32,
 }
 
 #[derive(Serialize)]
 struct ChatMessage<'a> {
-    role:    &'a str,
+    role: &'a str,
     content: &'a str,
 }
 
