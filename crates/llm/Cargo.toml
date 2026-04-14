@@ -1,11 +1,12 @@
 [package]
 name    = "mauns-llm"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 [dependencies]
-mauns-core  = { path = "../core" }
-async-trait = { workspace = true }
+mauns-core   = { path = "../core" }
+mauns-config = { path = "../config" }
+async-trait  = { workspace = true }
 serde       = { workspace = true }
 serde_json  = { workspace = true }
 reqwest     = { workspace = true }

@@ -21,6 +21,7 @@ use tracing::{info, warn};
 pub struct GitConfig {
     pub create_pr: bool,
     pub commit_prefix: String,
+    pub github_token: Option<String>,
 }
 
 impl GitConfig {
@@ -31,7 +32,15 @@ impl GitConfig {
         Self {
             create_pr,
             commit_prefix: "[mauns] ".to_string(),
+            github_token: None,
         }
+    }
+
+    pub fn with_token(mut self, token: String) -> Self {
+        if !token.is_empty() {
+            self.github_token = Some(token);
+        }
+        self
     }
 }
 
@@ -102,15 +111,15 @@ async fn attempt_push_and_pr(
     change_log: &[FileChange],
     git_cfg: &GitConfig,
 ) -> Result<Option<String>> {
-    let token = match std::env::var("GITHUB_TOKEN") {
-        Ok(t) if !t.trim().is_empty() => t,
-        _ => {
-            info!(git = "push", "GITHUB_TOKEN not set; skipping push and PR");
+    let token = match git_cfg.github_token {
+        Some(ref t) => t,
+        None => {
+            info!(git = "push", "github_token not set; skipping push and PR");
             return Ok(None);
         }
     };
 
-    push_branch(repo, branch, &token)?;
+    push_branch(repo, branch, token)?;
 
     if !git_cfg.create_pr {
         info!(github = "pr", "create_pr is false; skipping PR creation");
@@ -126,7 +135,7 @@ async fn attempt_push_and_pr(
         }
     };
 
-    let gh_client = GitHubClient::new(token)?;
+    let gh_client = GitHubClient::new(token.clone())?;
 
     let base = default_branch(&gh_client, &owner, &repo_name)
         .await

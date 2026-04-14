@@ -1,7 +1,7 @@
 {
   "name": "mauns",
-  "version": "0.1.0",
-  "description": "Deterministic AI agent CLI — safe, Rust-powered, developer-first",
+  "version": "0.1.1",
+  "description": "Deterministic AI agent session — Groq, OpenAI, and Anthropic support",
   "keywords": [
     "ai",
     "agent",
@@ -10,7 +10,8 @@
     "rust",
     "developer-tools",
     "anthropic",
-    "openai"
+    "openai",
+    "groq"
   ],
   "homepage": "https://github.com/mauns/mauns",
   "bugs": {

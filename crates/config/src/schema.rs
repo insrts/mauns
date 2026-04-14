@@ -5,8 +5,11 @@ use serde::{Deserialize, Serialize};
 #[serde(default)]
 pub struct MaunsConfig {
     pub provider: String,
+    /// Optional model override. Empty means use provider default.
+    pub model: String,
     pub openai: OpenAiConfig,
     pub claude: ClaudeConfig,
+    pub groq: GroqConfig,
     pub safety: SafetyConfig,
     pub logging: LoggingConfig,
     pub git: GitConfig,
@@ -17,8 +20,10 @@ impl Default for MaunsConfig {
     fn default() -> Self {
         Self {
             provider: "anthropic".to_string(),
+            model: String::new(),
             openai: OpenAiConfig::default(),
             claude: ClaudeConfig::default(),
+            groq: GroqConfig::default(),
             safety: SafetyConfig::default(),
             logging: LoggingConfig::default(),
             git: GitConfig::default(),
@@ -30,7 +35,21 @@ impl Default for MaunsConfig {
 impl MaunsConfig {
     pub fn validate(&self) -> Result<()> {
         match self.provider.to_lowercase().as_str() {
-            "openai" | "anthropic" => {}
+            "openai" => {
+                if self.openai.api_key.is_empty() {
+                    return Err(MaunsError::Config("openai.api_key is required".to_string()));
+                }
+            }
+            "anthropic" => {
+                if self.claude.api_key.is_empty() {
+                    return Err(MaunsError::Config("claude.api_key is required".to_string()));
+                }
+            }
+            "groq" => {
+                if self.groq.api_key.is_empty() {
+                    return Err(MaunsError::Config("groq.api_key is required".to_string()));
+                }
+            }
             other => return Err(MaunsError::InvalidProvider(other.to_string())),
         }
         if self.execution.max_iterations == 0 {
@@ -56,30 +75,44 @@ impl MaunsConfig {
         Ok(())
     }
 
+    /// Effective model: explicit override > provider default.
+    pub fn effective_model(&self) -> Option<&str> {
+        if self.model.is_empty() {
+            None
+        } else {
+            Some(&self.model)
+        }
+    }
+
     pub fn default_toml() -> &'static str {
         r#"# Mauns configuration
-provider = "anthropic"   # openai | anthropic
+provider = "anthropic"   # openai | anthropic | groq
+model    = ""            # leave empty to use provider default
 
 [openai]
-api_key = ""             # or set OPENAI_API_KEY env var
+api_key = ""
 
 [claude]
-api_key = ""             # or set CLAUDE_API_KEY env var
+api_key = ""
+
+[groq]
+api_key = ""
 
 [safety]
 dry_run              = false
 confirm_before_write = false
 
 [logging]
-level = "info"           # error | warn | info | debug | trace
+level = "info"
 
 [git]
-create_pr = true
+create_pr    = true
+github_token = ""
 
 [execution]
-max_iterations = 20      # max agent loop iterations per run
-max_retries    = 3       # retries per step on failure or bad output
-context_window = 6       # recent steps kept in full context
+max_iterations = 20
+max_retries    = 3
+context_window = 6
 "#
     }
 }
@@ -93,6 +126,12 @@ pub struct OpenAiConfig {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ClaudeConfig {
+    pub api_key: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct GroqConfig {
     pub api_key: String,
 }
 
@@ -121,23 +160,23 @@ impl Default for LoggingConfig {
 #[serde(default)]
 pub struct GitConfig {
     pub create_pr: bool,
+    pub github_token: String,
 }
 
 impl Default for GitConfig {
     fn default() -> Self {
-        Self { create_pr: true }
+        Self {
+            create_pr: true,
+            github_token: String::new(),
+        }
     }
 }
 
-/// Controls the iterative execution loop.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ExecutionConfig {
-    /// Maximum number of agent iterations across all steps.
     pub max_iterations: usize,
-    /// Maximum retries per step on failure or unparseable output.
     pub max_retries: usize,
-    /// Number of recent step/skill outputs kept in full context.
     pub context_window: usize,
 }
 
