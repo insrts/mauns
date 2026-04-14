@@ -135,20 +135,11 @@ pub struct GroqConfig {
     pub api_key: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct SafetyConfig {
     pub dry_run: bool,
     pub confirm_before_write: bool,
-}
-
-impl Default for SafetyConfig {
-    fn default() -> Self {
-        Self {
-            dry_run: false,
-            confirm_before_write: false,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
