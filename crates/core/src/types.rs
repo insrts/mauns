@@ -152,6 +152,7 @@ pub struct TaskReport {
     pub change_log: Vec<FileChange>,
     pub git_outcome: Option<GitOutcome>,
     pub skill_log: Vec<SkillUsage>,
+    pub reasoning_summary: Option<String>,
     /// True when the run was stopped early by Ctrl+C.
     pub interrupted: bool,
 }

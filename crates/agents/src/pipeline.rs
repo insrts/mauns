@@ -68,7 +68,7 @@ impl Pipeline {
 
         let fs = Filesystem::new(ctx.dry_run)?;
 
-        let plan = self.planner.plan(task, ctx, reporter).await?;
+        let (plan, reasoning_summary) = self.planner.plan(task, ctx, reporter).await?;
         info!(pipeline = "planner", steps = plan.steps.len());
 
         let (execution, skill_log, interrupted) = self
@@ -129,6 +129,7 @@ impl Pipeline {
             change_log,
             git_outcome,
             skill_log,
+            reasoning_summary,
             interrupted,
         };
 

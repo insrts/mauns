@@ -20,10 +20,6 @@ pub const GROQ_MODELS: &[(&str, &str)] = &[
     ("llama-3.1-8b-instant", "Llama 3.1 8B — very fast"),
     ("mixtral-8x7b-32768", "Mixtral 8x7B — 32k context"),
     ("gemma2-9b-it", "Gemma 2 9B — compact"),
-    (
-        "llama3-groq-70b-8192-tool-use-preview",
-        "Llama 3 70B — tool use",
-    ),
 ];
 
 #[derive(Debug, Clone)]
@@ -34,10 +30,12 @@ pub struct GroqProvider {
 }
 
 impl GroqProvider {
-    pub fn new(api_key: impl Into<String>) -> Self {
+    pub fn new(api_key: impl Into<String>, model: Option<impl Into<String>>) -> Self {
         Self {
             api_key: api_key.into(),
-            model: DEFAULT_MODEL.to_string(),
+            model: model
+                .map(|m| m.into())
+                .unwrap_or_else(|| DEFAULT_MODEL.to_string()),
             client: Client::new(),
         }
     }

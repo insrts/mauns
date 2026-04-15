@@ -131,7 +131,7 @@ impl SessionRunner {
             Ok(p) => p,
             Err(e) => {
                 print_error(&format!("Provider error: {e}"));
-                print_dim("Set the API key with: export GROQ_API_KEY=... (or CLAUDE_API_KEY / OPENAI_API_KEY)");
+                print_dim("Check your API keys in mauns.toml.");
                 return;
             }
         };
@@ -240,6 +240,7 @@ impl SessionRunner {
                     print_warning("Run was interrupted before completion.");
                 }
 
+                self.state.last_reasoning = report.reasoning_summary.clone();
                 self.state.reports.push(report);
             }
             Err(MaunsError::Aborted) => {
@@ -251,9 +252,9 @@ impl SessionRunner {
 
                 // Provide targeted help for common errors.
                 match &e {
-                    MaunsError::Config(msg) if msg.contains("API_KEY") => {
-                        print_dim("Set the key: export GROQ_API_KEY=gsk_...");
-                        print_dim("Or use /models to switch provider.");
+                    MaunsError::Config(msg) if msg.contains("api_key") => {
+                        print_dim("Update your API key in mauns.toml.");
+                        print_dim("Or use /provider to switch provider.");
                     }
                     MaunsError::LimitExceeded(_) => {
                         print_dim("Use /config max_iterations <n> to increase the limit.");

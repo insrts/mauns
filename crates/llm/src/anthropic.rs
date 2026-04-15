@@ -19,10 +19,12 @@ pub struct AnthropicProvider {
 }
 
 impl AnthropicProvider {
-    pub fn new(api_key: impl Into<String>) -> Self {
+    pub fn new(api_key: impl Into<String>, model: Option<impl Into<String>>) -> Self {
         Self {
             api_key: api_key.into(),
-            model: DEFAULT_MODEL.to_string(),
+            model: model
+                .map(|m| m.into())
+                .unwrap_or_else(|| DEFAULT_MODEL.to_string()),
             client: Client::new(),
         }
     }

@@ -41,6 +41,8 @@ pub struct SessionState {
     pub last_plan: Option<Plan>,
     /// History of task descriptions run in this session.
     pub task_history: Vec<String>,
+    /// Reasoning from the last run.
+    pub last_reasoning: Option<String>,
     /// Full reports from completed runs in this session.
     pub reports: Vec<TaskReport>,
     /// Tracks how many tasks have been run.
@@ -59,6 +61,7 @@ impl SessionState {
             deterministic: false,
             last_plan: None,
             task_history: Vec::new(),
+            last_reasoning: None,
             reports: Vec::new(),
             run_count: 0,
         }
