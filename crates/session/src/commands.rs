@@ -54,12 +54,23 @@ pub fn handle_command(
         }
 
         "/models" => {
-            let changed = cmd_models(state, rest);
-            if changed {
-                CommandResult::ProviderChanged
-            } else {
-                CommandResult::Continue
-            }
+            cmd_models(state, rest);
+            CommandResult::Continue
+        }
+
+        "/provider" => {
+            cmd_provider(state, rest);
+            CommandResult::ProviderChanged
+        }
+
+        "/model" => {
+            cmd_model(state, rest);
+            CommandResult::ProviderChanged
+        }
+
+        "/why" => {
+            cmd_why(state);
+            CommandResult::Continue
         }
 
         "/plan" => {
@@ -149,10 +160,10 @@ fn cmd_help() {
     let cmds = [
         ("/help", "Show this help message"),
         ("/config", "View or set configuration  (/config key value)"),
-        (
-            "/models",
-            "List or switch provider/model  (/models groq llama-3.3-70b-versatile)",
-        ),
+        ("/models", "List available providers and models"),
+        ("/provider <name>", "Switch the active provider"),
+        ("/model <name>", "Switch the active model"),
+        ("/why", "Explain the agent's reasoning for the last run"),
         ("/plan", "Display the last generated plan"),
         ("/status", "Show current session status"),
         ("/history [n]", "Show last N task inputs (default: 10)"),
@@ -265,67 +276,66 @@ fn cmd_config(state: &mut SessionState, rest: &str) {
     }
 }
 
-/// Returns true when the provider/model changed.
-fn cmd_models(state: &mut SessionState, rest: &str) -> bool {
-    if rest.is_empty() {
-        // List all providers and their models.
-        print_section("Providers & Models");
-        for kind in ProviderKind::all() {
-            let current = kind.as_str() == state.provider.as_str();
-            let marker = if current { " *" } else { "  " };
-            println!("{marker} {}", kind.as_str().to_uppercase());
-            for (id, desc) in models_for_provider(kind) {
-                let active = current && id == state.model.as_str();
-                let m = if active { "  > " } else { "    " };
-                println!("{m}{:<44} {desc}", id);
-            }
-            println!();
+fn cmd_models(state: &SessionState, _rest: &str) {
+    // List all providers and their models.
+    print_section("Providers & Models");
+    for kind in ProviderKind::all() {
+        let current = kind.as_str() == state.provider.as_str();
+        let marker = if current { " *" } else { "  " };
+        println!("{marker} {}", kind.as_str().to_uppercase());
+        for (id, desc) in models_for_provider(kind) {
+            let active = current && id == state.model.as_str();
+            let m = if active { "  > " } else { "    " };
+            println!("{m}{:<44} {desc}", id);
         }
-        print_dim("Usage: /models <provider> [model]");
-        print_dim("Example: /models groq llama-3.3-70b-versatile");
-        return false;
+        println!();
+    }
+    print_dim("Use /provider <name> or /model <name> to switch.");
+}
+
+fn cmd_provider(state: &mut SessionState, rest: &str) {
+    if rest.is_empty() {
+        print_error("Usage: /provider <name>");
+        return;
     }
 
-    let mut parts = rest.splitn(2, char::is_whitespace);
-    let provider_str = parts.next().unwrap_or("").trim().to_lowercase();
-    let model_str = parts.next().unwrap_or("").trim().to_string();
-
-    let kind: ProviderKind = match provider_str.parse() {
+    let provider_str = rest.trim().to_lowercase();
+    let _: ProviderKind = match provider_str.parse() {
         Ok(k) => k,
         Err(_) => {
             print_error(&format!(
                 "Unknown provider '{provider_str}'. Choose from: openai, anthropic, groq"
             ));
-            return false;
+            return;
         }
     };
-
-    // Validate model if specified.
-    if !model_str.is_empty() {
-        let valid = models_for_provider(&kind)
-            .iter()
-            .any(|(id, _)| *id == model_str.as_str());
-        if !valid {
-            print_warning(&format!(
-                "Model '{model_str}' is not in the known list for {provider_str}."
-            ));
-            print_warning("Proceeding anyway — the API will reject it if invalid.");
-        }
-    }
 
     state.provider = provider_str;
-    state.model = model_str;
+    print_success(&format!("Provider changed to '{}'", state.provider));
+}
 
-    let model_display = if state.model.is_empty() {
-        "(default)".to_string()
-    } else {
-        state.model.clone()
-    };
-    print_success(&format!(
-        "Provider: {}  Model: {model_display}",
-        state.provider
-    ));
-    true
+fn cmd_model(state: &mut SessionState, rest: &str) {
+    if rest.is_empty() {
+        print_error("Usage: /model <name>");
+        return;
+    }
+
+    state.model = rest.trim().to_string();
+    print_success(&format!("Model set to '{}'", state.model));
+}
+
+fn cmd_why(state: &SessionState) {
+    match &state.last_reasoning {
+        Some(reasoning) => {
+            print_section("Why this plan?");
+            println!("{reasoning}");
+            println!();
+            print_dim("Confidence: medium");
+        }
+        None => {
+            print_info("No reasoning available yet. Run a task first.");
+        }
+    }
 }
 
 fn cmd_plan(state: &SessionState) {

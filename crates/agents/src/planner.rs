@@ -27,7 +27,7 @@ impl Planner {
         task: &str,
         ctx: &RunContext,
         reporter: Option<&dyn ProgressReporter>,
-    ) -> Result<Plan> {
+    ) -> Result<(Plan, Option<String>)> {
         info!(agent = "planner", "producing structured plan");
 
         let policy_section = if ctx.agents_policy.raw.is_empty() {
@@ -62,14 +62,16 @@ impl Planner {
              - Keep step tasks concise and specific.\n\
              - Each step must be independently executable.\n\
              \n\
-             Output ONLY a JSON object with a single key \"steps\" containing an array.\n\
-             Each element must have exactly these keys:\n\
+             Output ONLY a JSON object with two keys:\n\
+             1. \"reasoning\" — a concise string explaining your overall strategy\n\
+             2. \"steps\"     — an array where each element has exactly these keys:\n\
                \"id\"         — integer, 1-based, unique\n\
                \"task\"       — string, what must be done\n\
                \"depends_on\" — array of ids that must complete first (empty if none)\n\
              \n\
              Example:\n\
-             {{\"steps\":[{{\"id\":1,\"task\":\"Read existing code\",\"depends_on\":[]}},\
+             {{\"reasoning\":\"First we read the code to understand the context, then we implement the fix.\",\
+             \"steps\":[{{\"id\":1,\"task\":\"Read existing code\",\"depends_on\":[]}},\
              {{\"id\":2,\"task\":\"Write new function\",\"depends_on\":[1]}}]}}\n\
              \n\
              No prose, no markdown fences, only the raw JSON object.\
@@ -79,7 +81,7 @@ impl Planner {
 
         let raw = self.provider.send_prompt(&prompt).await?;
 
-        let parsed = parse_plan_json(raw.trim()).map_err(|e| MaunsError::Agent {
+        let (parsed, reasoning) = parse_plan_json(raw.trim()).map_err(|e| MaunsError::Agent {
             agent: "planner".to_string(),
             message: format!("plan parse failed: {e}\nraw: {raw}"),
         })?;
@@ -111,7 +113,10 @@ impl Planner {
             r.on_plan(&plan);
         }
 
-        Ok(plan)
+        let _ = reasoning; // TODO: return reasoning if needed by caller, or let it be dropped if only plan is needed here.
+                           // Actually, TaskReport needs it. Let's return (Plan, Option<String>).
+
+        Ok((plan, reasoning))
     }
 }
 
@@ -119,9 +124,14 @@ impl Planner {
 // JSON parsing
 // ---------------------------------------------------------------------------
 
-fn parse_plan_json(text: &str) -> std::result::Result<Vec<Step>, String> {
+fn parse_plan_json(text: &str) -> std::result::Result<(Vec<Step>, Option<String>), String> {
     let value: serde_json::Value =
         serde_json::from_str(text).map_err(|e| format!("invalid JSON: {e}"))?;
+
+    let reasoning = value
+        .get("reasoning")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
 
     let arr = value
         .get("steps")
@@ -162,7 +172,7 @@ fn parse_plan_json(text: &str) -> std::result::Result<Vec<Step>, String> {
         });
     }
 
-    Ok(steps)
+    Ok((steps, reasoning))
 }
 
 // ---------------------------------------------------------------------------
@@ -208,14 +218,15 @@ mod tests {
 
     #[test]
     fn parse_valid_plan() {
-        let json = r#"{"steps":[
+        let json = r#"{"reasoning": "Test reasoning", "steps":[
             {"id":1,"task":"Read files","depends_on":[]},
             {"id":2,"task":"Write output","depends_on":[1]}
         ]}"#;
-        let steps = parse_plan_json(json).unwrap();
+        let (steps, reasoning) = parse_plan_json(json).unwrap();
         assert_eq!(steps.len(), 2);
         assert_eq!(steps[0].id, 1);
         assert_eq!(steps[1].depends_on, vec![1]);
+        assert_eq!(reasoning.unwrap(), "Test reasoning");
     }
 
     #[test]

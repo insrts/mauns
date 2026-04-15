@@ -722,7 +722,7 @@ dependencies = [
 
 [[package]]
 name = "mauns"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "mauns-agents",
  "mauns-config",
@@ -736,7 +736,7 @@ dependencies = [
 
 [[package]]
 name = "mauns-agents"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -756,7 +756,7 @@ dependencies = [
 
 [[package]]
 name = "mauns-cli"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -771,7 +771,7 @@ dependencies = [
 
 [[package]]
 name = "mauns-config"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "mauns-core",
  "serde",
@@ -781,7 +781,7 @@ dependencies = [
 
 [[package]]
 name = "mauns-core"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -796,7 +796,7 @@ dependencies = [
 
 [[package]]
 name = "mauns-filesystem"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "mauns-core",
@@ -807,7 +807,7 @@ dependencies = [
 
 [[package]]
 name = "mauns-git"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "git2",
@@ -819,7 +819,7 @@ dependencies = [
 
 [[package]]
 name = "mauns-github"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "mauns-core",
  "reqwest",
@@ -831,7 +831,7 @@ dependencies = [
 
 [[package]]
 name = "mauns-llm"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -846,7 +846,7 @@ dependencies = [
 
 [[package]]
 name = "mauns-sdk"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "mauns-agents",
  "mauns-config",
@@ -859,7 +859,7 @@ dependencies = [
 
 [[package]]
 name = "mauns-session"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -878,7 +878,7 @@ dependencies = [
 
 [[package]]
 name = "mauns-skills"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "chrono",

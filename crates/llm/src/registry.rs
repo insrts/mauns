@@ -65,32 +65,17 @@ pub fn build_provider_with_model(
     match kind {
         ProviderKind::OpenAi => {
             let key = config.openai.api_key.clone();
-            let p = OpenAiProvider::new(key);
-            let p = if let Some(m) = model {
-                p.with_model(m)
-            } else {
-                p
-            };
+            let p = OpenAiProvider::new(key, model.map(|s| s.to_string()));
             Ok(Arc::new(p))
         }
         ProviderKind::Anthropic => {
             let key = config.claude.api_key.clone();
-            let p = AnthropicProvider::new(key);
-            let p = if let Some(m) = model {
-                p.with_model(m)
-            } else {
-                p
-            };
+            let p = AnthropicProvider::new(key, model.map(|s| s.to_string()));
             Ok(Arc::new(p))
         }
         ProviderKind::Groq => {
             let key = config.groq.api_key.clone();
-            let p = GroqProvider::new(key);
-            let p = if let Some(m) = model {
-                p.with_model(m)
-            } else {
-                p
-            };
+            let p = GroqProvider::new(key, model.map(|s| s.to_string()));
             Ok(Arc::new(p))
         }
     }

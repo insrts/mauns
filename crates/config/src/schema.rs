@@ -40,7 +40,7 @@ impl MaunsConfig {
                     return Err(MaunsError::Config("openai.api_key is required".to_string()));
                 }
             }
-            "anthropic" => {
+            "anthropic" | "claude" => {
                 if self.claude.api_key.is_empty() {
                     return Err(MaunsError::Config("claude.api_key is required".to_string()));
                 }
